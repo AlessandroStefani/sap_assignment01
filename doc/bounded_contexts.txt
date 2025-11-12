@@ -1,0 +1,8 @@
+Ordine
+Drone
+Spedizione
+
+
+contesti:
+Contesto Ordine (Ordine, Drone)
+Contesto Spedizione (Spedizione)
