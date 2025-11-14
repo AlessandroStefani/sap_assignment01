@@ -1,0 +1,23 @@
+Utente deve essere loggato.
+
+Utente(Client MS) -> Crea Ordine(azione) -> Delivery Service(MS)
+Delivery Service(MS) -> Richiede Trasporto(azione) -> Drone Hub Service(MS)
+Drone Hub Service(MS) -> (Controlla flotta, sceglie Drone X) -> Drone X(OGGETTO) (svolto in locale)
+
+se utente chiede tracking allora lo si attiva (?)
+Drone X(OGGETTO) -> (Vola) -> Invia telemetria a -> Tracking Service(MS)
+Tracking Service(MS) -> Traduce telemetria in eventi di business ("Pacco in arrivo") -> Delivery Service
+Delivery Service -> Notifica Utente ("Il tuo pacco è qui!") (prob non serve)
+
+Drone è entità di dominio, quindi classe.
+
+---
+Delivery Service: CRUD degli ordini.
+
+Drone Hub Service: Gestione Droni + Logica di assegnazione (Dispatching).
+
+
+MS:
+Client -> Server -> Delivery Service -> Drone Hub ---> 
+		|					Tracking service
+		------------------------------------->
