@@ -21,3 +21,7 @@ MS:
 Client -> Server -> Delivery Service -> Drone Hub ---> 
 		|					Tracking service
 		------------------------------------->
+
+Il drone deve avere l'id dell'ordine, il client chiede il tracking specificando id ordine.
+da gestire eventualmente notifica di arrivo pacco.
+il drone (oggetto case class) una volta partito manda messaggi a tracking service, il client chiede info semplicemente leggendo sul db del tracking service. 
