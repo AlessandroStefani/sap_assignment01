@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36" version="29.0.2">
   <diagram name="Pagina-1" id="Grbafcii_GY_OeQMUvMF">
-    <mxGraphModel dx="2108" dy="1743" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="1992" dy="1691" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -253,11 +253,11 @@
             <mxPoint x="370" y="1060" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="bhYXdxRzRX6VqYhZMFcS-14" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="bhYXdxRzRX6VqYhZMFcS-10" target="bhYXdxRzRX6VqYhZMFcS-6">
+        <mxCell id="bhYXdxRzRX6VqYhZMFcS-14" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="bhYXdxRzRX6VqYhZMFcS-18" target="bhYXdxRzRX6VqYhZMFcS-6">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="bhYXdxRzRX6VqYhZMFcS-10" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;" vertex="1" parent="1">
-          <mxGeometry x="324" y="850" width="20" height="20" as="geometry" />
+          <mxGeometry x="334" y="835" width="20" height="20" as="geometry" />
         </mxCell>
         <mxCell id="bhYXdxRzRX6VqYhZMFcS-12" value="assegno consegna ad un drone disponibile" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
           <mxGeometry x="300" y="760" width="120" height="30" as="geometry" />
@@ -270,6 +270,9 @@
         </mxCell>
         <mxCell id="bhYXdxRzRX6VqYhZMFcS-17" value="Ordine assegnato a drone (id)" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
           <mxGeometry x="45" y="860" width="170" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bhYXdxRzRX6VqYhZMFcS-18" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;" vertex="1" parent="1">
+          <mxGeometry x="334" y="870" width="20" height="20" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
