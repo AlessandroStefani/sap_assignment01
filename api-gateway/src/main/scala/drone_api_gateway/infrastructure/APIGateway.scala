@@ -1,21 +1,20 @@
 package drone_api_gateway.infrastructure
 
-import io.circe.generic.auto._
-import org.http4s.circe.CirceEntityCodec._
 import cats.effect.{ExitCode, IO, IOApp}
 import com.comcast.ip4s.*
+import io.circe.generic.auto.*
+import org.http4s.HttpRoutes
+import org.http4s.circe.CirceEntityCodec.*
 import org.http4s.client.Client
 import org.http4s.dsl.io.*
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits.uri
 import org.http4s.server.middleware.Logger
-import org.http4s.{HttpRoutes, Status}
-import org.http4s.FormDataDecoder.formEntityDecoder
 
 import scala.language.postfixOps
 
-case class LoginCommand(username: String, password: String)
+case class AccountServiceCommand(username: String, password: String)
 
 object APIGateway extends IOApp:
   private val BACKEND_PORT = port"8080"
@@ -29,18 +28,24 @@ object APIGateway extends IOApp:
 
     HttpRoutes.of[IO]:
       case req @ POST -> Root / "test" / "login" =>
-        req.as[LoginCommand].flatMap:
+        req.as[AccountServiceCommand].flatMap:
             login =>
               accountServiceProxy.loginUser(login.username, login.password).flatMap:
                 isLogged =>
                   if isLogged then Ok("Login effettuato")
                   else Ok("errore nel login")
-
         .handleErrorWith: error =>
           IO.println(s"ERRORE CLIENT: ${error.getMessage}") *>
           ServiceUnavailable(s"Gateway Error: impossibile contattare il servizio di login. Causa: ${error.getMessage}")
 
-
+      case req @ POST -> Root / "test" / "register" =>
+        req.as[AccountServiceCommand].flatMap:
+          account =>
+            accountServiceProxy.registerUser(account.username, account.password).flatMap:
+              res => Created(res)
+        .handleErrorWith: error =>
+          IO.println(s"ERRORE CLIENT: ${error.getMessage}") *>
+          ServiceUnavailable(s"Gateway Error: impossibile contattare il servizio di login. Causa: ${error.getMessage}")
 
       case _ => Ok("api not found")
 
