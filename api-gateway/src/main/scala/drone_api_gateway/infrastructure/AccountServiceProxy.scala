@@ -15,15 +15,16 @@ import org.http4s.{Method, Request}
 class AccountServiceProxy(val client: Client[IO]) extends AccountService:
 
   override def registerUser(userName: String, password: String): IO[Account] =
-    val targetUri = uri"prova"
+    val targetUri = uri"http://localhost:8081/test/register"
 
     val req = Request[IO](Method.POST, targetUri).withEntity(AccountPost(userName, password))
 
     client.run(req).use:
       response =>
-        val num = response.body.toString.toInt
         response.status match
-          case Status.Ok => IO.pure(Account(num, userName, password))
+          case Status.Ok => 
+          //IO.pure(Account(1, userName, password))
+            response.as[Account]
           case status => IO.raiseError(new RuntimeException(s"Registration failed with status: $status"))
 
   override def loginUser(userName: String, password: String): IO[Boolean] =

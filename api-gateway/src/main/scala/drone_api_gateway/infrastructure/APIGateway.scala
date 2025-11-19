@@ -19,7 +19,7 @@ case class AccountServiceCommand(username: String, password: String)
 object APIGateway extends IOApp:
   private val BACKEND_PORT = port"8080"
 
-  private val authServiceUrl = uri"http://localhost:8081/test/loginjffjfjfjfj"
+  private val authServiceUrl = uri"http://localhost:8081/test/login"
 
   private def routes(client: Client[IO]): HttpRoutes[IO] =
 
