@@ -1,0 +1,3 @@
+package drone_api_gateway.infrastructure
+
+object APIGatewayController
