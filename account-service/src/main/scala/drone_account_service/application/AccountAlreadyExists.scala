@@ -1,0 +1,3 @@
+package drone_account_service.application
+
+class AccountAlreadyExists extends Exception
