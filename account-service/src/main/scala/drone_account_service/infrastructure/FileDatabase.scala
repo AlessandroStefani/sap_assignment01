@@ -10,37 +10,24 @@ import io.circe.parser.*
 import io.circe.syntax.*
 
 object FileDatabase {
-
-  // Ritorna una Resource che contiene la Coda.
-  // Usiamo Resource perché lanciamo un processo in background (.start) che va gestito.
+  
   def make(filePath: String): Resource[IO, Queue[IO, AccountCommand]] = {
     val path = Path(filePath)
 
     Resource.eval(for {
-      // 1. CHECK INIZIALE: Se il file non c'è, lo creiamo vuoto
       _ <- initializeDb(path)
-
-      // 2. Carichiamo lo stato
       initialState <- loadFromFile(path)
       stateRef     <- Ref.of[IO, List[Account]](initialState)
-
-      // 3. Creiamo la Coda
       queue <- Queue.bounded[IO, AccountCommand](100)
-
-      // 4. Lanciamo il Loop in background (Fiber)
-      // Lo leghiamo alla Resource così se il main muore, il loop si chiude pulito
       _ <- processQueueLoop(queue, stateRef, path).start
-
       _ <- IO.println(s"DB Persistence started on file: $filePath")
     } yield queue)
   }
 
-  // --- LOGICA DI INIZIALIZZAZIONE (La tua richiesta specifica) ---
   private def initializeDb(path: Path): IO[Unit] =
     Files[IO].exists(path).flatMap { exists =>
       if (!exists) {
         IO.println(s"File DB non trovato. Creazione di un nuovo file vuoto: $path") *>
-          // Scriviamo una lista vuota "[]"
           fs2.Stream("[]")
             .through(fs2.text.utf8.encode)
             .through(Files[IO].writeAll(path))
@@ -50,7 +37,6 @@ object FileDatabase {
       }
     }
 
-  // --- LOGICA DEL LOOP (ACTOR) ---
   private def processQueueLoop(
                                 queue: Queue[IO, AccountCommand],
                                 stateRef: Ref[IO, List[Account]],
@@ -80,11 +66,10 @@ object FileDatabase {
             replyTo.complete(isValid)
           }
       }
-      .handleErrorWith(e => IO.println(s"Persistence Error: $e")) // Non crashare il loop
+      .handleErrorWith(e => IO.println(s"Persistence Error: $e"))
       .flatMap(_ => processQueueLoop(queue, stateRef, path))
   }
 
-  // --- HELPER LETTURA/SCRITTURA ---
   private def loadFromFile(path: Path): IO[List[Account]] =
     Files[IO].readAll(path)
       .through(fs2.text.utf8.decode)

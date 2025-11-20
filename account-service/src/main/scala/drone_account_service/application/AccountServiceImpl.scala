@@ -10,16 +10,9 @@ class AccountServiceImpl(queue: Queue[IO, AccountCommand]) extends AccountServic
 
   override def registerUser(username: String, password: String): IO[Account] =
     for {
-      // 1. Creiamo la "promessa" di una risposta futura
       deferred <- Deferred[IO, Either[Throwable, Account]]
-
-      // 2. Inviamo il comando alla coda dell'Actor
       _ <- queue.offer(RegisterCommand(username, password, deferred))
-
-      // 3. Ci mettiamo in attesa (senza bloccare il thread) che l'Actor completi la Deferred
       result <- deferred.get
-
-      // 4. Se dentro c'è un errore (es. utente esiste), lo lanciamo, altrimenti ritorniamo l'account
       account <- IO.fromEither(result)
     } yield account
 
