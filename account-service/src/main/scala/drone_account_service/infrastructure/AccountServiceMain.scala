@@ -27,7 +27,7 @@ object AccountServiceMain extends IOApp:
       req.as[AccountPost].flatMap { input =>
         service.loginUser(input.name, input.password).flatMap { isValid =>
           if isValid then
-            if loggedIn.contains(input) then Ok("Already logged in")
+            if loggedIn.contains(input) then Found("Already logged in")
             else
               loggedIn = input :: loggedIn
               Ok("Login successful")

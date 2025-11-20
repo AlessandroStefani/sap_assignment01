@@ -33,10 +33,13 @@ object APIGateway extends IOApp:
               accountServiceProxy.loginUser(login.username, login.password).flatMap:
                 isLogged =>
                   if isLogged then Ok("Login effettuato")
-                  else Ok("errore nel login")
+                  else NotFound("errore nel login, account non trovato o credenziali sbagliate")
         .handleErrorWith: error =>
           IO.println(s"ERRORE CLIENT: ${error.getMessage}") *>
-          ServiceUnavailable(s"Gateway Error: impossibile contattare il servizio di login. Causa: ${error.getMessage}")
+          
+          if error.getMessage == "gia loggato" then Found(error.getMessage)
+          else
+            ServiceUnavailable(s"Gateway Error: impossibile contattare il servizio di login. Causa: ${error.getMessage}")
 
       case req @ POST -> Root / "test" / "register" =>
         req.as[AccountServiceCommand].flatMap:

@@ -34,6 +34,7 @@ class AccountServiceProxy(val client: Client[IO]) extends AccountService:
     client.run(req).use { response =>
       response.status match {
         case Status.Ok => IO.pure(true)
+        case Status.Found => throw Exception("gia loggato")
         case _ => IO.pure(false)
       }
     }
