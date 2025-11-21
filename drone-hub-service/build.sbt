@@ -7,6 +7,14 @@ lazy val root = (project in file("."))
     name := "drone-hub-service"
   )
 
+val circeVersion = "0.14.15"
+
+libraryDependencies ++= Seq(
+  "io.circe" %% "circe-core" % circeVersion,
+  "io.circe" %% "circe-generic" % circeVersion,
+  "io.circe" %% "circe-parser" % circeVersion
+)
+
 val http4sVersion = "0.23.23" // o una versione più recente
 
 libraryDependencies ++= Seq(
@@ -20,3 +28,5 @@ libraryDependencies ++= Seq(
   "org.typelevel" %% "cats-core" % "2.13.0",
   "org.typelevel" %% "cats-effect" % "3.6.3",
 )
+
+libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.5.21"
