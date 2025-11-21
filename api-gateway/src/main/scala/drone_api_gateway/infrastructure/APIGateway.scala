@@ -20,6 +20,8 @@ object APIGateway extends IOApp:
   private val BACKEND_PORT = port"8080"
 
   private val authServiceUrl = uri"http://localhost:8081/test/login"
+  
+  private var loggedUser: List[String] = List.empty
 
   private def routes(client: Client[IO]): HttpRoutes[IO] =
 
@@ -32,7 +34,9 @@ object APIGateway extends IOApp:
             login =>
               accountServiceProxy.loginUser(login.username, login.password).flatMap:
                 isLogged =>
-                  if isLogged then Ok("Login effettuato")
+                  if isLogged then 
+                    loggedUser = login.username :: loggedUser
+                    Ok("Login effettuato")
                   else NotFound("errore nel login, account non trovato o credenziali sbagliate")
         .handleErrorWith: error =>
           IO.println(s"ERRORE CLIENT: ${error.getMessage}") *>
@@ -50,6 +54,8 @@ object APIGateway extends IOApp:
           IO.println(s"ERRORE CLIENT: ${error.getMessage}") *>
           ServiceUnavailable(s"Gateway Error: impossibile contattare il servizio di login. Causa: ${error.getMessage}")
 
+      case req @ POST -> Root / "test" / "trackOrder" => ???
+        
       case _ => Ok("api not found")
 
   //private def loggedRoutes(client: Client[IO]): HttpApp[IO] = Logger.httpApp(true, true)(routes(client).orNotFound)

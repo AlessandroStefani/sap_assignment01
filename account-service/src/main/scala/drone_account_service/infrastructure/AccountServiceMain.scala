@@ -23,7 +23,7 @@ object AccountServiceMain extends IOApp:
   private def accountRoutes(service: AccountService): HttpRoutes[IO] = HttpRoutes.of[IO]:
     case req @ POST -> Root / "test" / "login" =>
       req.as[AccountPost].flatMap: input =>
-        service.loginUser(input.name, input.password).flatMap: isValid =>
+        service.loginUser(input.username, input.password).flatMap: isValid =>
           if isValid then
             if loggedIn.contains(input) then Found("Already logged in")
             else
@@ -32,7 +32,7 @@ object AccountServiceMain extends IOApp:
           else Forbidden("Invalid credentials")
     case req @ POST -> Root / "test" / "register" =>
       req.as[AccountPost].flatMap: inputData =>
-        service.registerUser(inputData.name, inputData.password).flatMap: newAccount =>
+        service.registerUser(inputData.username, inputData.password).flatMap: newAccount =>
           Ok(newAccount)
         .handleErrorWith:
           case e: RuntimeException if e.getMessage.contains("exists") =>

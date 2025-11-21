@@ -1,3 +1,3 @@
 package drone_account_service.domain
 
-case class AccountPost(name: String, password: String)
+case class AccountPost(username: String, password: String)
