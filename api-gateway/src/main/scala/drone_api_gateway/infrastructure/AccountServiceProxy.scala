@@ -14,9 +14,13 @@ import org.http4s.{Method, Request}
 @Adapter
 class AccountServiceProxy(val client: Client[IO]) extends AccountService:
 
+  //docker routes
+  val dockerUriRegister = uri"http://account-service:8081/test/register"
+  val dockerUriLogin = uri"http://account-service:8081/test/login"
+
   override def registerUser(userName: String, password: String): IO[Account] =
     val targetUri = uri"http://localhost:8081/test/register"
-
+    // todo() cambiare con le rotte sopra per docker!!!!!!!!!
     val req = Request[IO](Method.POST, targetUri).withEntity(AccountPost(userName, password))
 
     client.run(req).use:
@@ -29,6 +33,7 @@ class AccountServiceProxy(val client: Client[IO]) extends AccountService:
 
   override def loginUser(userName: String, password: String): IO[Boolean] =
     val targetUri = uri"http://localhost:8081/test/login"
+    // todo() cambiare con le rotte sopra per docker!!!!!!!!!
     val req = Request[IO](Method.POST, targetUri).withEntity(AccountPost(userName, password))
 
     client.run(req).use { response =>

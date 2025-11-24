@@ -9,7 +9,6 @@ import org.http4s.client.Client
 import org.http4s.dsl.io.*
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
-import org.http4s.implicits.uri
 import org.http4s.server.middleware.Logger
 
 import scala.language.postfixOps
@@ -18,8 +17,6 @@ case class AccountServiceCommand(username: String, password: String)
 
 object APIGateway extends IOApp:
   private val BACKEND_PORT = port"8080"
-
-  private val authServiceUrl = uri"http://localhost:8081/test/login"
   
   private var loggedUser: List[String] = List.empty
 
