@@ -29,7 +29,7 @@ object AccountServiceMain extends IOApp:
             else
               loggedIn = input :: loggedIn
               Ok("Login successful")
-          else Forbidden("Invalid credentials")
+          else NotFound("Invalid credentials")
     case req @ POST -> Root / "test" / "register" =>
       req.as[AccountPost].flatMap: inputData =>
         service.registerUser(inputData.username, inputData.password).flatMap: newAccount =>
