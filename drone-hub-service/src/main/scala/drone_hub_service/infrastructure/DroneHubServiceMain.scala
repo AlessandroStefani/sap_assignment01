@@ -33,7 +33,7 @@ object DroneHubServiceMain extends IOApp:
     IO.println(s"🚁 Drone Hub Service is starting on port $DRONEHUB_PORT...") *>
       EmberServerBuilder
         .default[IO]
-        .withHost(host"localhost")
+        .withHost(host"0.0.0.0")
         .withPort(DRONEHUB_PORT)
         .withHttpApp(httpApp)
         .build
