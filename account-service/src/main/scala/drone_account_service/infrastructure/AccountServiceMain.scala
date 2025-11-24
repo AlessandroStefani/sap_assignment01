@@ -51,7 +51,7 @@ object AccountServiceMain extends IOApp:
 
       EmberServerBuilder
         .default[IO]
-        .withHost(host"localhost")
+        .withHost(host"0.0.0.0")
         .withPort(port"8081")
         .withHttpApp(httpApp)
         .build

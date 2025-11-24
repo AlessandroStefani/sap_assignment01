@@ -68,7 +68,7 @@ object APIGateway extends IOApp:
 
       server <- EmberServerBuilder
         .default[IO]
-        .withHost(host"localhost")
+        .withHost(host"0.0.0.0")
         .withPort(BACKEND_PORT)
         .withHttpApp(httpApp)
         .build
