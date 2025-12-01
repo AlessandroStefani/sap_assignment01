@@ -1,15 +1,18 @@
 package drone_hub_service.domain
 
 import common.ddd.Entity
+import drone_hub_service.application.DroneTracking
+import drone_hub_service.infrastructure.DroneTrackingProxy
 
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 
-// a livello teorico ogni drone potrebbe essere un micro-servizio a se stante.
+// Ogni drone potrebbe essere un micro-servizio a se stante.
 
 case class Drone(id: DroneId) extends Entity[DroneId]:
   private val busy = new AtomicBoolean(false)
+  private val tracker = new DroneTrackingProxy
 
   override def getId: DroneId = id
 
@@ -37,5 +40,7 @@ case class Drone(id: DroneId) extends Entity[DroneId]:
       busy.set(false)
     }
 
-  private def sendTelemetryToTrackingService(lat: Double, lon: Double, tta: Int): Unit =
+  private def sendTelemetryToTrackingService(lat: Double, lon: Double, tta: Int): Unit = {
     println(s"   >>> [TELEMETRY] Drone $id at ($lat, $lon): time until arrival $tta -> Sending to TrackingService...")
+    tracker.updateDrone(id, lat, lon, tta)
+  }
