@@ -2,9 +2,10 @@ package drone_api_gateway.infrastructure
 
 import cats.effect.{ExitCode, IO, IOApp}
 import com.comcast.ip4s.*
-import drone_api_gateway.domain.AccountPost
+import drone_api_gateway.application.{LoginErrorException, NotLoggedException}
+import drone_api_gateway.domain.{AccountPost, TrackOrderPost}
 import io.circe.generic.auto.*
-import org.http4s.HttpRoutes
+import org.http4s.{HttpRoutes, Response}
 import org.http4s.circe.CirceEntityCodec.*
 import org.http4s.client.Client
 import org.http4s.dsl.io.*
@@ -19,7 +20,11 @@ object APIGateway extends IOApp:
 
   private val apiRootVersion = "test"
   
-  private var loggedUser: List[String] = List.empty
+  private var loggedUser: Option[String] = Option.empty
+
+  private def handleClientError(serviceName: String)(error: Throwable): IO[Response[IO]] =
+    IO.println(s"ERRORE CLIENT: ${error.getMessage}") *>
+      ServiceUnavailable(s"Gateway Error: impossibile contattare il servizio di $serviceName. Causa: ${error.getMessage}")
 
   private def routes(client: Client[IO]): HttpRoutes[IO] =
 
@@ -32,15 +37,17 @@ object APIGateway extends IOApp:
               accountServiceProxy.loginUser(login.username, login.password).flatMap:
                 isLogged =>
                   if isLogged then 
-                    loggedUser = login.username :: loggedUser
+                    loggedUser = Some(login.username)
                     Ok("Login effettuato")
-                  else NotFound("errore nel login, account non trovato o credenziali sbagliate")
+                  else
+                    //NotFound("errore nel login, account non trovato o credenziali sbagliate")
+                    throw new LoginErrorException
         .handleErrorWith: error =>
           IO.println(s"ERRORE CLIENT: ${error.getMessage}") *>
           
           if error.getMessage == "gia loggato" then Found(error.getMessage)
           else
-            ServiceUnavailable(s"Gateway Error: impossibile contattare il servizio di login. Causa: ${error.getMessage}")
+            handleClientError("login")(error)
 
       case req @ POST -> Root / apiRootVersion / "register" =>
         req.as[AccountPost].flatMap:
@@ -48,10 +55,19 @@ object APIGateway extends IOApp:
             accountServiceProxy.registerUser(account.username, account.password).flatMap:
               res => Created(res)
         .handleErrorWith: error =>
-          IO.println(s"ERRORE CLIENT: ${error.getMessage}") *>
-          ServiceUnavailable(s"Gateway Error: impossibile contattare il servizio di login. Causa: ${error.getMessage}")
+          handleClientError("registrazione")(error)
 
-      case req @ POST -> Root / apiRootVersion / "trackOrder" => ???
+      case req @ POST -> Root / apiRootVersion / "trackOrder" =>
+        req.as[TrackOrderPost].flatMap:
+          trackOrder =>
+            if loggedUser.isDefined then
+              Ok("ok") //spedisci attraverso il proxy la richiesta
+            else
+              throw new NotLoggedException()
+              //NotFound("non sei loggato")
+              
+        .handleErrorWith: error =>
+          handleClientError("tracciamento ordine")(error)
         
       case _ => Ok("api not found")
 
@@ -68,8 +84,6 @@ object APIGateway extends IOApp:
         .build
     yield server
 
-
     appResource
       .use(_ => IO.never)
       .as(ExitCode.Success)
-
