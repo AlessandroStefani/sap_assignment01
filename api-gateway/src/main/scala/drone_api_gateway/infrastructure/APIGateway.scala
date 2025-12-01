@@ -2,6 +2,7 @@ package drone_api_gateway.infrastructure
 
 import cats.effect.{ExitCode, IO, IOApp}
 import com.comcast.ip4s.*
+import drone_api_gateway.domain.AccountPost
 import io.circe.generic.auto.*
 import org.http4s.HttpRoutes
 import org.http4s.circe.CirceEntityCodec.*
@@ -13,10 +14,10 @@ import org.http4s.server.middleware.Logger
 
 import scala.language.postfixOps
 
-case class AccountServiceCommand(username: String, password: String)
-
 object APIGateway extends IOApp:
   private val BACKEND_PORT = port"8080"
+
+  private val apiRootVersion = "test"
   
   private var loggedUser: List[String] = List.empty
 
@@ -24,10 +25,9 @@ object APIGateway extends IOApp:
 
     val accountServiceProxy: AccountServiceProxy = AccountServiceProxy(client)
 
-
     HttpRoutes.of[IO]:
-      case req @ POST -> Root / "test" / "login" =>
-        req.as[AccountServiceCommand].flatMap:
+      case req @ POST -> Root / apiRootVersion / "login" =>
+        req.as[AccountPost].flatMap:
             login =>
               accountServiceProxy.loginUser(login.username, login.password).flatMap:
                 isLogged =>
@@ -42,8 +42,8 @@ object APIGateway extends IOApp:
           else
             ServiceUnavailable(s"Gateway Error: impossibile contattare il servizio di login. Causa: ${error.getMessage}")
 
-      case req @ POST -> Root / "test" / "register" =>
-        req.as[AccountServiceCommand].flatMap:
+      case req @ POST -> Root / apiRootVersion / "register" =>
+        req.as[AccountPost].flatMap:
           account =>
             accountServiceProxy.registerUser(account.username, account.password).flatMap:
               res => Created(res)
@@ -51,16 +51,13 @@ object APIGateway extends IOApp:
           IO.println(s"ERRORE CLIENT: ${error.getMessage}") *>
           ServiceUnavailable(s"Gateway Error: impossibile contattare il servizio di login. Causa: ${error.getMessage}")
 
-      case req @ POST -> Root / "test" / "trackOrder" => ???
+      case req @ POST -> Root / apiRootVersion / "trackOrder" => ???
         
       case _ => Ok("api not found")
-
-  //private def loggedRoutes(client: Client[IO]): HttpApp[IO] = Logger.httpApp(true, true)(routes(client).orNotFound)
 
   override def run(args: List[String]): IO[ExitCode] =
     val appResource = for
       client <- EmberClientBuilder.default[IO].build
-      //httpApp = loggedRoutes(client)
       httpApp = Logger.httpApp(true, true)(routes(client).orNotFound)
 
       server <- EmberServerBuilder
