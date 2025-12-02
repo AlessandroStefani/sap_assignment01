@@ -1,7 +1,6 @@
 package drone_hub_service.domain
 
 import common.ddd.Entity
-import drone_hub_service.application.DroneTracking
 import drone_hub_service.infrastructure.DroneTrackingProxy
 
 import java.util.concurrent.atomic.AtomicBoolean
@@ -12,13 +11,14 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 case class Drone(id: DroneId) extends Entity[DroneId]:
   private val busy = new AtomicBoolean(false)
-  private val tracker = new DroneTrackingProxy
+  private val tracker = new DroneTrackingProxy()
 
   override def getId: DroneId = id
 
   def isAvailable: Boolean = !busy.get()
 
   def deliver(origin: String, destination: String, weight: Double): Unit =
+
     if (!busy.compareAndSet(false, true)) {
       throw new IllegalStateException(s"Drone $id is already busy!")
     }
