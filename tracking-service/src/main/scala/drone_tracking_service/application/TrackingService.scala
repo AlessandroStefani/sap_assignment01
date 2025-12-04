@@ -1,0 +1,3 @@
+package drone_tracking_service.application
+
+trait TrackingService
