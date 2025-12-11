@@ -1,3 +1,6 @@
 package drone_tracking_service.application
 
-trait TrackingService
+import cats.effect.IO
+
+trait TrackingService:
+  def trackDrone(droneId: String): IO[String] 
