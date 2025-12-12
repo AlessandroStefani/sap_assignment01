@@ -23,7 +23,7 @@ class OrderServiceMain extends IOApp:
       .default[IO]
       .withHost(host"0.0.0.0")
       .withPort(ORDER_SERVICE_PORT)
-      .withHttpApp(httpApp)
+      .withHttpApp(httApp)
       .build
       .use(_ => IO.never)
       .as(ExitCode.Success)
