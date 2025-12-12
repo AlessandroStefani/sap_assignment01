@@ -1,6 +1,7 @@
-package order_service.domain
+package drone_hub_service.domain
 
 import common.ddd.Entity
+
 import java.time.Instant
 
 case class Order(
@@ -11,4 +12,5 @@ case class Order(
                   destination: String,
                   departureDate: Instant,
                   droneId: Option[DroneId]
-                ) extends Entity[OrderId]
+                ) extends Entity[OrderId]:
+  override def getId: OrderId = id

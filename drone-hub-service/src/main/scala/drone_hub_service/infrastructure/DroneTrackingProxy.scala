@@ -3,7 +3,7 @@ package drone_hub_service.infrastructure
 import cats.effect.IO
 import common.exagonal.Adapter
 import drone_hub_service.application.DroneTracking
-import drone_hub_service.domain.{DroneId, TrackingUpdate}
+import drone_hub_service.domain.{DroneId, Order, TrackingUpdate}
 import io.circe.generic.auto.*
 import org.http4s.circe.CirceEntityCodec.*
 import org.http4s.ember.client.EmberClientBuilder
@@ -11,13 +11,14 @@ import org.http4s.{Method, Request, Uri}
 import org.http4s.implicits.*
 
 @Adapter
-class DroneTrackingProxy(trackingServiceUrl: String = "http://localhost:8083") extends DroneTracking:
+class DroneTrackingProxy extends DroneTracking:
 
+  private val trackingServiceUrl: String = "http://localhost:8083"
   //todo: sistemare gli endpoint
   private val baseUri = Uri.fromString(trackingServiceUrl).getOrElse(uri"http://localhost:8083")
   private val endpoint = baseUri / "api" / "tracking" / "update"
 
-  override def updateDrone(id: DroneId, lat: Double, lon: Double, tta: Int): IO[Unit] =
+  override def updateDrone(id: DroneId, order: Order, lat: Double, lon: Double, tta: Int): IO[Unit] =
     val payload = TrackingUpdate(id, lat, lon, tta)
     val request = Request[IO](Method.POST, endpoint).withEntity(payload)
 

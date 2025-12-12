@@ -19,7 +19,7 @@ object DroneHubServiceMain extends IOApp:
   private def routes(service: DroneHubService): HttpRoutes[IO] = HttpRoutes.of[IO]:
     case req@POST -> Root / "drone_hub" / "delivery" =>
       req.as[DroneOrderRequest].flatMap: input =>
-        IO(service.newOrder(input.origin, input.destination, input.weight)).flatMap: assignedDroneId =>
+        IO(service.shipOrder(input.order)).flatMap: assignedDroneId =>
           Ok(assignedDroneId)
         .handleErrorWith:
           case e: RuntimeException =>
