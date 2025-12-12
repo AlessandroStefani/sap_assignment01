@@ -14,16 +14,15 @@ import org.http4s.implicits.*
 class DroneTrackingProxy extends DroneTracking:
 
   private val trackingServiceUrl: String = "http://localhost:8083"
-  //todo: sistemare gli endpoint
   private val baseUri = Uri.fromString(trackingServiceUrl).getOrElse(uri"http://localhost:8083")
   private val endpoint = baseUri / "api" / "tracking" / "update"
 
   override def updateDrone(id: DroneId, order: Order, lat: Double, lon: Double, tta: Int): IO[Unit] =
-    val payload = TrackingUpdate(id, lat, lon, tta)
+    val payload = TrackingUpdate(id, order.id.toString, lat, lon, tta)
     val request = Request[IO](Method.POST, endpoint).withEntity(payload)
 
     EmberClientBuilder.default[IO].build.use { client =>
-      client.run(request).use { _ => //Ignoro la risposta ma possiamo fare come ci pare
+      client.run(request).use { _ => 
         IO.unit
       }
     }.handleErrorWith { e =>
