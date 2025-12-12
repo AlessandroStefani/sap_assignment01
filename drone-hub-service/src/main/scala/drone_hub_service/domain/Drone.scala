@@ -1,6 +1,7 @@
 package drone_hub_service.domain
 
 import common.ddd.Entity
+import drone_hub.domain.OrderId
 import drone_hub_service.infrastructure.DroneTrackingProxy
 
 import java.util.concurrent.atomic.AtomicBoolean
@@ -17,14 +18,16 @@ case class Drone(id: DroneId) extends Entity[DroneId]:
 
   def isAvailable: Boolean = !busy.get()
 
-  def deliver(origin: String, destination: String, weight: Double): Unit =
+  def deliver(order: Order): Unit =
+    val updatedOrder = order.copy(droneId = Some(this.id))
 
     if (!busy.compareAndSet(false, true)) {
       throw new IllegalStateException(s"Drone $id is already busy!")
     }
-    val flightDurationSeconds = ((origin.length + destination.length) * 0.5 * weight).toInt.min(weight.toInt + 15)
+    //random bullshit, GO!!!
+    val flightDurationSeconds = ((order.origin.length + order.destination.length) * 0.5 * order.weight).toInt.min(order.weight.toInt + 15)
 
-    println(s"[DRONE $id] Starting delivery from $origin to $destination. Estimated time: ${flightDurationSeconds}s")
+    println(s"[DRONE $id] Starting delivery from $order.origin to $order.destination. Estimated time: ${flightDurationSeconds}s")
 
     Future {
       val steps = flightDurationSeconds
@@ -33,14 +36,14 @@ case class Drone(id: DroneId) extends Entity[DroneId]:
         val mockLat = 44.0 + i.toDouble
         val mockLon = 12.0 + i.toDouble
 
-        sendTelemetryToTrackingService(mockLat, mockLon, flightDurationSeconds - i)
+        sendTelemetryToTrackingService(updatedOrder, mockLat, mockLon, flightDurationSeconds - i)
       }
 
-      println(s"[DRONE $id] Delivery completed at $destination!")
+      println(s"[DRONE $id] Delivery completed at $order.destination!")
       busy.set(false)
     }
 
-  private def sendTelemetryToTrackingService(lat: Double, lon: Double, tta: Int): Unit = {
+  private def sendTelemetryToTrackingService(order: Order, lat: Double, lon: Double, tta: Int): Unit = {
     println(s"   >>> [TELEMETRY] Drone $id at ($lat, $lon): time until arrival $tta -> Sending to TrackingService...")
-    tracker.updateDrone(id, lat, lon, tta)
+    tracker.updateDrone(id, order, lat, lon, tta)
   }
