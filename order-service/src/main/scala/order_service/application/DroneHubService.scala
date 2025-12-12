@@ -1,3 +1,6 @@
 package order_service.application
 
-class DroneHubService
+import common.exagonal.OutBoundPort
+
+@OutBoundPort
+trait DroneHubService
