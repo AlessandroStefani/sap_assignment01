@@ -11,4 +11,5 @@ case class Order(
                   destination: String,
                   departureDate: Instant,
                   droneId: Option[DroneId]
-                ) extends Entity[OrderId]
+                ) extends Entity[OrderId]:
+  override def getId: OrderId = id

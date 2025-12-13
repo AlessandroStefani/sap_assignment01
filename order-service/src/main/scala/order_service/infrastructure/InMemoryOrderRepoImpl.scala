@@ -4,15 +4,15 @@ import common.exagonal.Adapter
 import order_service.application.OrderRepository
 import order_service.domain.Order
 
-import scala.collection.mutable
+import scala.collection.concurrent.TrieMap
 
 @Adapter
 object InMemoryOrderRepoImpl extends OrderRepository:
-
-  private val orders: mutable.Map[String, List[Order]] = mutable.Map.empty
+  private val orders = TrieMap.empty[String, List[Order]]
 
   override def addOrder(usrId: String, order: Order): Unit =
-    val currentOrders = orders.getOrElse(usrId, List.empty)
-    orders.update(usrId, currentOrders :+ order)
+    val current = orders.getOrElse(usrId, List.empty)
+    orders.put(usrId, current :+ order)
 
-  override def getUserOrders(usrId: String): List[Order] = orders.getOrElse(usrId, List.empty)
+  override def getUserOrders(usrId: String): List[Order] =
+    orders.getOrElse(usrId, List.empty)
