@@ -20,6 +20,7 @@ object TrackingServiceMain extends IOApp:
       // 1. Endpoint per ricevere aggiornamenti dal drone (usato da drone-hub-service)
       case req @ POST -> Root / "api" / "tracking" / "update" =>
         req.as[DroneTelemetry].flatMap { telemetry =>
+          IO.println(s"📡 [TrackingService] RICEVUTO telemetry: $telemetry") *>
           trackingService.updateDronePosition(telemetry) *> Ok()
         }.handleErrorWith { error =>
           IO.println(s"Errore update telemetry: ${error.getMessage}") *>

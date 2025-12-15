@@ -18,11 +18,16 @@ class DroneTrackingProxy extends DroneTracking:
   private val endpoint = baseUri / "api" / "tracking" / "update"
 
   override def updateDrone(id: DroneId, order: Order, lat: Double, lon: Double, tta: Int): IO[Unit] =
-    val payload = TrackingUpdate(id, order.id.toString, lat, lon, tta)
+    val payload = TrackingUpdate(id.id, order.id.toString, lat, lon, tta)
     val request = Request[IO](Method.POST, endpoint).withEntity(payload)
 
+    IO.println(s"📤 [Proxy] INVIO update per drone ${id.id}...") *>
     EmberClientBuilder.default[IO].build.use { client =>
-      client.run(request).use { _ => 
+      client.run(request).use { response =>
+        if (response.status.isSuccess) then
+          IO.println(s"✅ [Proxy] Update inviato con SUCCESSO (Status: ${response.status})")
+        else
+          IO.println(s"⚠️ [Proxy] Il server ha risposto con ERRORE: ${response.status}")
         IO.unit
       }
     }.handleErrorWith { e =>
