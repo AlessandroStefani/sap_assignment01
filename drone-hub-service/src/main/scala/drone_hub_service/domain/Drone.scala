@@ -3,14 +3,13 @@ package drone_hub_service.domain
 import cats.effect.IO
 import cats.implicits.*
 import common.ddd.Entity
-import drone_hub_service.infrastructure.DroneTrackingProxy
+import drone_hub_service.application.DroneTracking
 
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.concurrent.duration.*
 
-case class Drone(id: DroneId) extends Entity[DroneId]:
+case class Drone(id: DroneId, tracker: DroneTracking) extends Entity[DroneId]:
   private val busy = new AtomicBoolean(false)
-  private val tracker = new DroneTrackingProxy()
 
   override def getId: DroneId = id
 

@@ -4,32 +4,23 @@ import cats.effect.IO
 import common.exagonal.Adapter
 import drone_hub_service.application.DroneTracking
 import drone_hub_service.domain.{DroneId, Order, TrackingUpdate}
-import io.circe.generic.auto.*
-import org.http4s.circe.CirceEntityCodec.*
-import org.http4s.ember.client.EmberClientBuilder
+import org.http4s.client.Client
 import org.http4s.{Method, Request, Uri}
-import org.http4s.implicits.*
+import org.http4s.implicits.uri
+import org.http4s.circe.CirceEntityCodec.*
+import io.circe.generic.auto.*
 
 @Adapter
-class DroneTrackingProxy extends DroneTracking:
-
-  private val trackingServiceUrl: String = "http://localhost:8083"
-  private val baseUri = Uri.fromString(trackingServiceUrl).getOrElse(uri"http://localhost:8083")
+class DroneTrackingProxy(client: Client[IO]) extends DroneTracking:
+  private val baseUri = uri"http://localhost:8083"
   private val endpoint = baseUri / "api" / "tracking" / "update"
 
   override def updateDrone(id: DroneId, order: Order, lat: Double, lon: Double, tta: Int): IO[Unit] =
     val payload = TrackingUpdate(id.id, order.id.id, lat, lon, tta)
     val request = Request[IO](Method.POST, endpoint).withEntity(payload)
 
-    IO.println(s"📤 [Proxy] INVIO update per drone ${id.id}...") *>
-    EmberClientBuilder.default[IO].build.use { client =>
-      client.run(request).use { response =>
-        if (response.status.isSuccess) then
-          IO.println(s"✅ [Proxy] Update inviato con SUCCESSO (Status: ${response.status})")
-        else
-          IO.println(s"⚠️ [Proxy] Il server ha risposto con ERRORE: ${response.status}")
-        IO.unit
+    client.expect[Unit](request)
+      .flatMap(_ => IO.println(s"✅ [Proxy] Update inviato per drone ${id.id}"))
+      .handleErrorWith { e =>
+        IO.println(s"⚠️ [Proxy] Errore invio tracking drone ${id.id}: ${e.getMessage}")
       }
-    }.handleErrorWith { e =>
-      IO.println(s"[Proxy] Errore invio tracking: ${e.getMessage}")
-    }
