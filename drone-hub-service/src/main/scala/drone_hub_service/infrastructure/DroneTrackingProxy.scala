@@ -18,7 +18,7 @@ class DroneTrackingProxy extends DroneTracking:
   private val endpoint = baseUri / "api" / "tracking" / "update"
 
   override def updateDrone(id: DroneId, order: Order, lat: Double, lon: Double, tta: Int): IO[Unit] =
-    val payload = TrackingUpdate(id.id, order.id.toString, lat, lon, tta)
+    val payload = TrackingUpdate(id.id, order.id.id, lat, lon, tta)
     val request = Request[IO](Method.POST, endpoint).withEntity(payload)
 
     IO.println(s"📤 [Proxy] INVIO update per drone ${id.id}...") *>
