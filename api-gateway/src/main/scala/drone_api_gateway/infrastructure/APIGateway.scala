@@ -3,7 +3,7 @@ package drone_api_gateway.infrastructure
 import cats.effect.{ExitCode, IO, IOApp}
 import com.comcast.ip4s.*
 import drone_api_gateway.application.{LoginErrorException, NotLoggedException}
-import drone_api_gateway.domain.{AccountPost, TrackOrderPost}
+import drone_api_gateway.domain.{AccountPost, NewOrderRequest, TrackOrderPost}
 import io.circe.generic.auto.*
 import org.http4s.{HttpRoutes, Response}
 import org.http4s.circe.CirceEntityCodec.*
@@ -29,6 +29,7 @@ object APIGateway extends IOApp:
   private def routes(client: Client[IO]): HttpRoutes[IO] =
 
     val accountServiceProxy: AccountServiceProxy = AccountServiceProxy(client)
+    val orderServiceProxy = OrderServiceProxy(client)
 
     HttpRoutes.of[IO]:
       case req @ POST -> Root / apiRootVersion / "login" =>
@@ -56,6 +57,29 @@ object APIGateway extends IOApp:
               res => Created(res)
         .handleErrorWith: error =>
           handleClientError("registrazione")(error)
+
+      case req @ POST -> Root / apiRootVersion / "orders" =>
+        req.as[NewOrderRequest].flatMap: orderDto =>
+          if loggedUser.isDefined then
+            orderServiceProxy.placeOrder(
+              loggedUser.get,
+              orderDto.origin,
+              orderDto.destination,
+              orderDto.weight,
+              orderDto.departureDate
+            ).flatMap(res => Accepted(res))
+          else
+            throw new NotLoggedException()
+        .handleErrorWith: error =>
+          handleClientError("creazione ordine")(error)
+
+      case GET -> Root / apiRootVersion / "orders" =>
+        if loggedUser.isDefined then
+          orderServiceProxy.getOrders(loggedUser.get)
+            .flatMap(orders => Ok(orders))
+            .handleErrorWith(error => handleClientError("recupero ordini")(error))
+        else
+          handleClientError("recupero ordini")(NotLoggedException())
 
       case req @ POST -> Root / apiRootVersion / "trackOrder" =>
         req.as[TrackOrderPost].flatMap:

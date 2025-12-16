@@ -10,6 +10,8 @@ import org.http4s.server.middleware.Logger
 import org.http4s.circe.CirceEntityCodec.*
 import io.circe.generic.auto.*
 import order_service.application.*
+import order_service.domain.NewOrderRequest
+
 import java.time.Instant
 
 case class OrderRequest(userId: String, origin: String, destination: String, weight: Double, delaySeconds: Long)
@@ -18,9 +20,22 @@ object OrderServiceMain extends IOApp:
   private val ORDER_SERVICE_PORT = port"9068"
 
   private def routes(service: OrderService): HttpRoutes[IO] = HttpRoutes.of[IO]:
-    case req @ POST -> Root / "order" / "new" => ???
+    case req @ POST -> Root / "orders" / "new" =>
+      req.as[NewOrderRequest].flatMap { input =>
+        service.newOrder(
+          input.userId,
+          input.origin,
+          input.destination,
+          input.weight,
+          input.departureDate
+        ).flatMap { orderId =>
+          Accepted(s"Order ${orderId.id} scheduled successfully for ${input.departureDate}")
+        }
+      }.handleErrorWith { e =>
+        BadRequest(s"Invalid order request: ${e.getMessage}")
+      }
 
-    case GET -> Root / "order" / "user" / userId =>
+    case GET -> Root / "orders" / "user" / userId =>
       service.getOrders(userId).flatMap(Ok(_))
 
   override def run(args: List[String]): IO[ExitCode] =
