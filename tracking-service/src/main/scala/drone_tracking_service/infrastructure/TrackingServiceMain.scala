@@ -28,7 +28,7 @@ object TrackingServiceMain extends IOApp:
         }
 
       // 2. Endpoint per il client (API Gateway o utente finale)
-      case req @ POST -> Root / "trackDrone" =>
+      case req @ POST -> Root / "tracking" / "trackDrone" =>
         req.as[TrackingRequest].flatMap { trackRequest =>
           trackingService.trackDrone(trackRequest).flatMap { trackingInfo =>
             Ok(trackingInfo)

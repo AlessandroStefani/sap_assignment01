@@ -3,7 +3,8 @@ package drone_api_gateway.infrastructure
 import cats.effect.{ExitCode, IO, IOApp}
 import com.comcast.ip4s.*
 import drone_api_gateway.application.{LoginErrorException, NotLoggedException}
-import drone_api_gateway.domain.{AccountPost, NewOrderRequest, TrackOrderPost}
+import drone_api_gateway.domain.tracking.{TrackOrderPost, TrackingRequest}
+import drone_api_gateway.domain.{AccountPost, NewOrderRequest}
 import io.circe.generic.auto.*
 import org.http4s.{HttpRoutes, Response}
 import org.http4s.circe.CirceEntityCodec.*
@@ -30,6 +31,7 @@ object APIGateway extends IOApp:
 
     val accountServiceProxy: AccountServiceProxy = AccountServiceProxy(client)
     val orderServiceProxy = OrderServiceProxy(client)
+    val trackingServiceProxy = TrackingServiceProxy(client)
 
     HttpRoutes.of[IO]:
       case req @ POST -> Root / apiRootVersion / "login" =>
@@ -85,10 +87,10 @@ object APIGateway extends IOApp:
         req.as[TrackOrderPost].flatMap:
           trackOrder =>
             if loggedUser.isDefined then
-              Ok("ok") //spedisci attraverso il proxy la richiesta
+              trackingServiceProxy.trackDrone(TrackingRequest(trackOrder.orderId, "1")).flatMap: // ToDo() fix droneId
+                res => Ok(res)
             else
               throw new NotLoggedException()
-              //NotFound("non sei loggato")
               
         .handleErrorWith: error =>
           handleClientError("tracciamento ordine")(error)
