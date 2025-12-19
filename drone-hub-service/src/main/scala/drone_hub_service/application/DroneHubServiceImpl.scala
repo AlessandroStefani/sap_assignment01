@@ -3,7 +3,7 @@ package drone_hub_service.application
 import cats.effect.IO
 import drone_hub_service.domain.{Drone, DroneId, Order}
 
-class DroneHubServiceImpl(trackingService: DroneTracking) extends DroneHubService:
+class DroneHubServiceImpl(trackingService: DroneStateUpdater) extends DroneHubService:
 
   private val fleetSize = 10
   private val fleet: List[Drone] = (1 to fleetSize).map { n =>

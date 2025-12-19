@@ -6,5 +6,5 @@ import drone_hub_service.domain.Order
 import drone_hub_service.domain.DroneId
 
 @OutBoundPort
-trait DroneTracking:
+trait DroneStateUpdater:
   def updateDrone(id: DroneId, order: Order, xpos: Double, ypos: Double, tta: Int): IO[Unit] //modifica come vuoi
