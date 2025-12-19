@@ -3,9 +3,9 @@ package drone_tracking_service.application
 import cats.effect.{IO, Ref}
 import drone_tracking_service.domain.{DroneTelemetry, TrackingRequest}
 
-class TrackingServiceImpl(state: Ref[IO, Map[String, DroneTelemetry]]) extends TrackingService:
+class TrackingServiceImpl(state: Ref[IO, Map[String, DroneTelemetry]]) extends TrackingService with DroneStateUpdater:
 
-  def updateDronePosition(telemetry: DroneTelemetry): IO[Unit] =
+  override def updateDronePosition(telemetry: DroneTelemetry): IO[Unit] =
     state.update { currentMap =>
       // Aggiorna o inserisce la telemetria per quel droneId
       currentMap + (telemetry.droneId -> telemetry)
