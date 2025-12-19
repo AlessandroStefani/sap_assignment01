@@ -5,7 +5,7 @@ import drone_tracking_service.domain.{DroneTelemetry, TrackingRequest}
 
 class TrackingServiceImpl(state: Ref[IO, Map[String, DroneTelemetry]]) extends TrackingService:
 
-  override def updateDronePosition(telemetry: DroneTelemetry): IO[Unit] =
+  def updateDronePosition(telemetry: DroneTelemetry): IO[Unit] =
     state.update { currentMap =>
       // Aggiorna o inserisce la telemetria per quel droneId
       currentMap + (telemetry.droneId -> telemetry)
@@ -26,5 +26,5 @@ class TrackingServiceImpl(state: Ref[IO, Map[String, DroneTelemetry]]) extends T
 
 object TrackingServiceImpl:
   // Factory method per creare il servizio inizializzando la Ref vuota
-  def create: IO[TrackingService] =
+  def create: IO[TrackingServiceImpl] =
     Ref.of[IO, Map[String, DroneTelemetry]](Map.empty).map(new TrackingServiceImpl(_))

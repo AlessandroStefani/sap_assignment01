@@ -15,7 +15,7 @@ object TrackingServiceMain extends IOApp:
 
   private val BACKEND_PORT = port"8083"
 
-  private def routes(trackingService: TrackingService): HttpRoutes[IO] =
+  private def routes(trackingService: TrackingServiceImpl): HttpRoutes[IO] =
     HttpRoutes.of[IO]:
       // 1. Endpoint per ricevere aggiornamenti dal drone (usato da drone-hub-service)
       case req @ POST -> Root / "api" / "tracking" / "update" =>
