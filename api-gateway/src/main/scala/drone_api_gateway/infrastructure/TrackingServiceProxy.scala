@@ -20,5 +20,5 @@ class TrackingServiceProxy(client: Client[IO]) extends TrackingService:
 
     client.expect[DroneTelemetry](request).handleErrorWith { e =>
       IO.println(s"⚠️ Errore ${e.getMessage}") *>
-        IO.pure(DroneTelemetry(null, null, 0.0, 0.0, 0))
+        IO.pure(DroneTelemetry("errore", "errore", 0.0, 0.0, 0))
     }
