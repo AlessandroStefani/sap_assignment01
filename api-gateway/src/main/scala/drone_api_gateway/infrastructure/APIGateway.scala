@@ -3,16 +3,16 @@ package drone_api_gateway.infrastructure
 import cats.effect.{ExitCode, IO, IOApp}
 import com.comcast.ip4s.*
 import drone_api_gateway.application.{LoginErrorException, NotLoggedException}
-import drone_api_gateway.domain.tracking.{TrackOrderPost, TrackingRequest}
+import drone_api_gateway.domain.tracking.TrackingRequest
 import drone_api_gateway.domain.{AccountPost, NewOrderRequest}
 import io.circe.generic.auto.*
-import org.http4s.{HttpRoutes, Response}
 import org.http4s.circe.CirceEntityCodec.*
 import org.http4s.client.Client
 import org.http4s.dsl.io.*
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.middleware.Logger
+import org.http4s.{HttpRoutes, Response}
 
 import scala.language.postfixOps
 
@@ -84,10 +84,10 @@ object APIGateway extends IOApp:
           handleClientError("recupero ordini")(NotLoggedException())
 
       case req @ POST -> Root / apiRootVersion / "trackOrder" =>
-        req.as[TrackOrderPost].flatMap:
+        req.as[TrackingRequest].flatMap:
           trackOrder =>
             if loggedUser.isDefined then
-              trackingServiceProxy.trackDrone(TrackingRequest(trackOrder.orderId, "1")).flatMap: // ToDo() fix droneId
+              trackingServiceProxy.trackDrone(TrackingRequest(trackOrder.orderId, trackOrder.droneId)).flatMap:
                 res => Ok(res)
             else
               throw new NotLoggedException()
