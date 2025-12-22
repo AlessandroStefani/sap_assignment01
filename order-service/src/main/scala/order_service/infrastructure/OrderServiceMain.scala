@@ -14,8 +14,6 @@ import order_service.domain.NewOrderRequest
 
 import java.time.Instant
 
-case class OrderRequest(userId: String, origin: String, destination: String, weight: Double, delaySeconds: Long)
-
 object OrderServiceMain extends IOApp:
   private val ORDER_SERVICE_PORT = port"9068"
 
