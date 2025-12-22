@@ -43,7 +43,7 @@ object OrderServiceMain extends IOApp:
       val droneHub = new DroneHubServiceProxy(client)
 
       val orderService = new OrderServiceImpl(orderRepo)
-      val dispatcher = new OrderDispatcher(orderRepo, droneHub) // <--- Creato
+      val dispatcher = new OrderDispatcher(orderRepo, droneHub)
 
       val httpApp = Logger.httpApp(true, true)(routes(orderService).orNotFound)
 
@@ -51,7 +51,6 @@ object OrderServiceMain extends IOApp:
 
       dispatcher.start.void *>
 
-      // 3. Avvia il server HTTP
       EmberServerBuilder
         .default[IO]
         .withHost(host"0.0.0.0")
