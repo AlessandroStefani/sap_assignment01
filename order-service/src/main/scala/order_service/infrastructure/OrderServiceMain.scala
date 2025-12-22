@@ -13,12 +13,13 @@ import order_service.application.*
 import order_service.domain.NewOrderRequest
 
 import java.time.Instant
+import scala.language.postfixOps
 
 object OrderServiceMain extends IOApp:
   private val ORDER_SERVICE_PORT = port"9068"
 
   private def routes(service: OrderService): HttpRoutes[IO] = HttpRoutes.of[IO]:
-    case req @ POST -> Root / "orders" / "new" =>
+    case req @ POST -> Root / "order" / "new" =>
       req.as[NewOrderRequest].flatMap { input =>
         service.newOrder(
           input.userId,
@@ -33,26 +34,30 @@ object OrderServiceMain extends IOApp:
         BadRequest(s"Invalid order request: ${e.getMessage}")
       }
 
-    case GET -> Root / "orders" / "user" / userId =>
+    case GET -> Root / "order" / "user" / userId =>
       service.getOrders(userId).flatMap(Ok(_))
 
   override def run(args: List[String]): IO[ExitCode] =
-    val appResource = for
-      client <- EmberClientBuilder.default[IO].build
-      droneHubProxy = new DroneHubServiceProxy(client)
-      repo = InMemoryOrderRepoImpl
-      orderService = new OrderServiceImpl(repo)
-      dispatcher = new OrderDispatcher(repo, droneHubProxy)
+    EmberClientBuilder.default[IO].build.use { client =>
+      val orderRepo = InMemoryOrderRepoImpl
+      val droneHub = new DroneHubServiceProxy(client)
 
-      httpApp = Logger.httpApp(true, true)(routes(orderService).orNotFound)
-      server = EmberServerBuilder
+      val orderService = new OrderServiceImpl(orderRepo)
+      val dispatcher = new OrderDispatcher(orderRepo, droneHub) // <--- Creato
+
+      val httpApp = Logger.httpApp(true, true)(routes(orderService).orNotFound)
+
+      IO.println(s"📦 Order Service starting on $ORDER_SERVICE_PORT...") *>
+
+      dispatcher.start.void *>
+
+      // 3. Avvia il server HTTP
+      EmberServerBuilder
         .default[IO]
         .withHost(host"0.0.0.0")
         .withPort(ORDER_SERVICE_PORT)
         .withHttpApp(httpApp)
         .build
-    yield (server, dispatcher)
+        .use(_ => IO.never)
 
-    appResource.use { case (_, dispatcher) =>
-      (IO.never, dispatcher.start).parTupled.as(ExitCode.Success)
-    }
+    }.as(ExitCode.Success)

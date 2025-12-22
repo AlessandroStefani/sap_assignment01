@@ -21,7 +21,7 @@ object APIGateway extends IOApp:
 
   private val apiRootVersion = "test"
   
-  private var loggedUser: Option[String] = Option.empty
+  private var loggedUser: Option[String] = Some("due")
 
   private def handleClientError(serviceName: String)(error: Throwable): IO[Response[IO]] =
     IO.println(s"ERRORE CLIENT: ${error.getMessage}") *>
