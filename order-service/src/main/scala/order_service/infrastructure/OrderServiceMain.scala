@@ -1,6 +1,7 @@
 package order_service.infrastructure
 
 import cats.effect.{ExitCode, IO, IOApp}
+import cats.syntax.all.* // Importante per operatori come .background e *>
 import com.comcast.ip4s.*
 import org.http4s.HttpRoutes
 import org.http4s.dsl.io.*
@@ -11,7 +12,6 @@ import org.http4s.circe.CirceEntityCodec.*
 import io.circe.generic.auto.*
 import order_service.application.*
 import order_service.domain.NewOrderRequest
-
 import java.time.Instant
 import scala.language.postfixOps
 
@@ -47,16 +47,17 @@ object OrderServiceMain extends IOApp:
 
       val httpApp = Logger.httpApp(true, true)(routes(orderService).orNotFound)
 
+      val appResource = for
+        _ <- dispatcher.start.background
+        server <- EmberServerBuilder
+          .default[IO]
+          .withHost(host"0.0.0.0")
+          .withPort(ORDER_SERVICE_PORT)
+          .withHttpApp(httpApp)
+          .build
+      yield server
+
       IO.println(s"📦 Order Service starting on $ORDER_SERVICE_PORT...") *>
-
-      dispatcher.start.void *>
-
-      EmberServerBuilder
-        .default[IO]
-        .withHost(host"0.0.0.0")
-        .withPort(ORDER_SERVICE_PORT)
-        .withHttpApp(httpApp)
-        .build
-        .use(_ => IO.never)
-
+        IO.println(s"🔄 Dispatcher started inside background resource...") *>
+        appResource.use(_ => IO.never)
     }.as(ExitCode.Success)
