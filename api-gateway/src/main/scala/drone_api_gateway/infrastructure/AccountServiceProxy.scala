@@ -43,3 +43,13 @@ class AccountServiceProxy(val client: Client[IO]) extends AccountService:
         case _ => IO.pure(false)
       }
     }
+
+  override def logoutUser(userName: String): IO[Boolean] =
+    val targetUri = uri"http://localhost:8081/test/logout"
+    val req = Request[IO](Method.POST, targetUri).withEntity(AccountPost(userName, ""))
+
+    client.run(req).use: response =>
+      response.status match
+        case Status.Ok => IO.pure(true)
+        case Status.NotFound => IO.pure(false)
+        case status => IO.raiseError(new RuntimeException(s"Logout failed with status: $status"))

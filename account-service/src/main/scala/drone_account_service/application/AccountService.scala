@@ -9,3 +9,4 @@ trait AccountService:
 
   def loginUser(username: String, password: String): IO[Boolean]
 
+  def logoutUser(username: String): IO[Boolean]

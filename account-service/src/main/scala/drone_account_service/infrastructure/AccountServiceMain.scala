@@ -18,18 +18,21 @@ import org.http4s.server.middleware.Logger
 
 object AccountServiceMain extends IOApp:
 
-  private var loggedIn: List[AccountPost] = List.empty
-
   private def accountRoutes(service: AccountService): HttpRoutes[IO] = HttpRoutes.of[IO]:
     case req @ POST -> Root / "test" / "login" =>
       req.as[AccountPost].flatMap: input =>
         service.loginUser(input.username, input.password).flatMap: isValid =>
-          if isValid then
-            if loggedIn.contains(input) then Found("Already logged in")
-            else
-              loggedIn = input :: loggedIn
-              Ok("Login successful")
+          if isValid then Ok("Login successful")
           else NotFound("Invalid credentials")
+
+    case req @ POST -> Root / "test" / "logout" =>
+      req.as[AccountPost].flatMap: input =>
+        service.logoutUser(input.username).flatMap: removed =>
+          if removed then
+            Ok(s"User ${input.username} logged out")
+          else
+            NotFound("User not logged in")
+
     case req @ POST -> Root / "test" / "register" =>
       req.as[AccountPost].flatMap: inputData =>
         service.registerUser(inputData.username, inputData.password).flatMap: newAccount =>
@@ -40,7 +43,6 @@ object AccountServiceMain extends IOApp:
           case e =>
             InternalServerError(s"Errore imprevisto: ${e.getMessage}")
     case _ => NotFound("Rotta non trovata")
-
 
   def run(args: List[String]): IO[ExitCode] =
     FileDatabase.make("src/main/resources/accounts.json").use: commandQueue =>

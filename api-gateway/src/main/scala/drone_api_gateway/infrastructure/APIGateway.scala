@@ -94,7 +94,19 @@ object APIGateway extends IOApp:
               
         .handleErrorWith: error =>
           handleClientError("tracciamento ordine")(error)
-        
+
+      case POST -> Root / apiRootVersion / "logout" =>
+        if loggedUser.isDefined then
+          val userToLogout = loggedUser.get
+          // Chiamiamo il servizio account per rimuoverlo dalla sua lista
+          accountServiceProxy.logoutUser(userToLogout).flatMap: _ =>
+            // Azzeriamo la variabile locale
+            loggedUser = Option.empty
+            Ok("Logout effettuato correttamente")
+          .handleErrorWith: error =>
+            handleClientError("logout")(error)
+        else
+          Ok("Nessun utente era loggato")
       case _ => Ok("api not found")
 
   override def run(args: List[String]): IO[ExitCode] =
