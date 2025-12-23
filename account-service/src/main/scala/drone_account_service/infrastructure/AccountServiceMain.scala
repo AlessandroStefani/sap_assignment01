@@ -45,7 +45,7 @@ object AccountServiceMain extends IOApp:
     case _ => NotFound("Rotta non trovata")
 
   def run(args: List[String]): IO[ExitCode] =
-    FileDatabase.make("src/main/resources/accounts.json").use: commandQueue =>
+    FileDatabase.make("data/accounts.json").use: commandQueue => //it is now using docker files
       val accountService = new AccountServiceImpl(commandQueue)
       val httpApp = Logger.httpApp(true, true)(accountRoutes(accountService).orNotFound)
 

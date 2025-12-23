@@ -7,7 +7,6 @@ class TrackingServiceImpl(state: Ref[IO, Map[String, DroneTelemetry]]) extends T
 
   override def updateDronePosition(telemetry: DroneTelemetry): IO[Unit] =
     state.update { currentMap =>
-      // Aggiorna o inserisce la telemetria per quel droneId
       currentMap + (telemetry.droneId -> telemetry)
     } *> IO.println(s"[TrackingService] Updated telemetry for drone ${telemetry.droneId} carrying order ${telemetry.orderId}")
 
@@ -15,7 +14,6 @@ class TrackingServiceImpl(state: Ref[IO, Map[String, DroneTelemetry]]) extends T
     state.get.flatMap { currentMap =>
       currentMap.get(request.droneId) match
         case Some(telemetry) =>
-          // Controllo incrociato: verifica che il drone stia portando proprio quell'ordine
           if (telemetry.orderId == request.orderId) then
             IO.pure(telemetry)
           else
@@ -25,6 +23,5 @@ class TrackingServiceImpl(state: Ref[IO, Map[String, DroneTelemetry]]) extends T
     }
 
 object TrackingServiceImpl:
-  // Factory method per creare il servizio inizializzando la Ref vuota
   def create: IO[TrackingServiceImpl] =
     Ref.of[IO, Map[String, DroneTelemetry]](Map.empty).map(new TrackingServiceImpl(_))

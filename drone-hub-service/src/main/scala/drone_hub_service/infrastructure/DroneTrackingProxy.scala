@@ -16,9 +16,11 @@ class DroneTrackingProxy(client: Client[IO]) extends DroneStateUpdater:
   private val baseUri = uri"http://localhost:8083"
   private val endpoint = baseUri / "api" / "tracking" / "update"
 
+  private val dockerUri = uri"http://tracking-service:8083/api/tracking/update"
+
   override def updateDrone(id: DroneId, order: Order, lat: Double, lon: Double, tta: Int): IO[Unit] =
     val payload = TrackingUpdate(id.id, order.id.id, lat, lon, tta)
-    val request = Request[IO](Method.POST, endpoint).withEntity(payload)
+    val request = Request[IO](Method.POST, dockerUri).withEntity(payload)
 
     client.expect[Unit](request)(EntityDecoder.void[IO])
       .flatMap(_ => IO.println(s"✅ [Proxy] Update inviato per drone ${id.id}"))

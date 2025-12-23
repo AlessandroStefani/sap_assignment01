@@ -17,11 +17,12 @@ class AccountServiceProxy(val client: Client[IO]) extends AccountService:
   //docker routes
   val dockerUriRegister = uri"http://account-service:8081/test/register"
   val dockerUriLogin = uri"http://account-service:8081/test/login"
+  val dockerUriLogout = uri"http://account-service:8081/test/logout"
 
   override def registerUser(userName: String, password: String): IO[Account] =
     val targetUri = uri"http://localhost:8081/test/register"
-    // todo() cambiare con le rotte sopra per docker!!!!!!!!!
-    val req = Request[IO](Method.POST, targetUri).withEntity(AccountPost(userName, password))
+
+    val req = Request[IO](Method.POST, dockerUriRegister).withEntity(AccountPost(userName, password))
 
     client.run(req).use:
       response =>
@@ -33,8 +34,8 @@ class AccountServiceProxy(val client: Client[IO]) extends AccountService:
 
   override def loginUser(userName: String, password: String): IO[Boolean] =
     val targetUri = uri"http://localhost:8081/test/login"
-    // todo() cambiare con le rotte sopra per docker!!!!!!!!!
-    val req = Request[IO](Method.POST, targetUri).withEntity(AccountPost(userName, password))
+
+    val req = Request[IO](Method.POST, dockerUriLogin).withEntity(AccountPost(userName, password))
 
     client.run(req).use { response =>
       response.status match {
@@ -46,7 +47,7 @@ class AccountServiceProxy(val client: Client[IO]) extends AccountService:
 
   override def logoutUser(userName: String): IO[Boolean] =
     val targetUri = uri"http://localhost:8081/test/logout"
-    val req = Request[IO](Method.POST, targetUri).withEntity(AccountPost(userName, ""))
+    val req = Request[IO](Method.POST, dockerUriLogout).withEntity(AccountPost(userName, ""))
 
     client.run(req).use: response =>
       response.status match

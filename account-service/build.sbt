@@ -31,3 +31,12 @@ libraryDependencies ++= Seq(
 
 // Logger
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.4.7"
+
+// Strategia per gestire i conflitti durante la creazione del JAR
+assembly / assemblyMergeStrategy := {
+  case PathList("META-INF", xs @ _*) => MergeStrategy.discard
+  case "module-info.class" => MergeStrategy.discard
+  case x =>
+    val oldStrategy = (assembly / assemblyMergeStrategy).value
+    oldStrategy(x)
+}

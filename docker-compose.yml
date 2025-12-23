@@ -1,0 +1,67 @@
+name: drone-server
+
+services:
+  account-service:
+    build:
+      context: ./account-service
+      dockerfile: Dockerfile
+    image: drone-account-service
+    container_name: drone-account-service-01
+    networks:
+      - drone_network
+    ports:
+      - "8081:8081"
+    expose: 
+      - 8081
+    volumes:
+      - ./docker-data/accounts:/app/data
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    image: drone-api-gateway
+    container_name: drone-api-gateway-01
+    networks:
+      - drone_network
+    ports:
+      - "8080:8080"
+    expose: 
+      - 8080
+  tracking-service:
+    build:
+      context: ./tracking-service
+      dockerfile: Dockerfile
+    image: drone-tracking-service
+    container_name: drone-tracking-service-01
+    networks:
+      - drone_network
+    ports:
+      - "8083:8083"
+    expose: 
+      - 8083
+  order-service:
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile
+    image: drone-order-service
+    container_name: drone-order-service-01
+    networks:
+      - drone_network
+    ports:
+      - "9068:9068"
+    expose: 
+      - 9068
+  drone-hub-service:
+    build:
+      context: ./drone-hub-service
+      dockerfile: Dockerfile
+    image: drone-hub-service
+    container_name: drone-hub-service-01
+    networks:
+      - drone_network
+    ports:
+      - "9067:9067"
+    expose: 
+      - 9067
+networks:
+  drone_network:

@@ -8,7 +8,6 @@ import drone_account_service.infrastructure.{AccountCommand, RegisterCommand, Lo
 
 class AccountServiceImpl(queue: Queue[IO, AccountCommand]) extends AccountService:
 
-  // Spostiamo qui lo stato della sessione (in memoria)
   private var loggedUsers: List[String] = List.empty
 
   override def registerUser(username: String, password: String): IO[Account] =
@@ -24,14 +23,12 @@ class AccountServiceImpl(queue: Queue[IO, AccountCommand]) extends AccountServic
       deferred <- Deferred[IO, Boolean]
       _ <- queue.offer(LoginCommand(username, password, deferred))
       isValid <- deferred.get
-      // Se le credenziali sono valide, aggiungiamo l'utente alla lista se non c'è già
       _ <- IO {
         if isValid && !loggedUsers.contains(username) then
           loggedUsers = username :: loggedUsers
       }
     yield isValid
 
-  // Implementazione della logica di logout interna al metodo
   override def logoutUser(username: String): IO[Boolean] = IO {
     if loggedUsers.contains(username) then
       loggedUsers = loggedUsers.filterNot(_ == username)

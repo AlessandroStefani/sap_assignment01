@@ -98,9 +98,7 @@ object APIGateway extends IOApp:
       case POST -> Root / apiRootVersion / "logout" =>
         if loggedUser.isDefined then
           val userToLogout = loggedUser.get
-          // Chiamiamo il servizio account per rimuoverlo dalla sua lista
           accountServiceProxy.logoutUser(userToLogout).flatMap: _ =>
-            // Azzeriamo la variabile locale
             loggedUser = Option.empty
             Ok("Logout effettuato correttamente")
           .handleErrorWith: error =>

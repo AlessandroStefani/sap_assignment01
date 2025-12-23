@@ -12,11 +12,12 @@ import io.circe.generic.auto.*
 class TrackingServiceProxy(client: Client[IO]) extends TrackingService:
 
   private val trackingServiceUrl = uri"http://localhost:8083/tracking/trackDrone"
+  private val dockerUri = uri"http://tracking-service:8083/tracking/trackDrone"
 
   override def trackDrone(trackingRequest: TrackingRequest): IO[DroneTelemetry] =
     val requestBody = trackingRequest
 
-    val request = Request[IO](method = Method.POST, trackingServiceUrl).withEntity(requestBody)
+    val request = Request[IO](method = Method.POST, dockerUri).withEntity(requestBody)
 
     client.expect[DroneTelemetry](request).handleErrorWith { e =>
       IO.println(s"⚠️ Errore ${e.getMessage}") *>

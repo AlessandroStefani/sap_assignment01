@@ -13,12 +13,14 @@ import io.circe.generic.auto.*
 @Adapter
 class DroneHubServiceProxy(client: Client[IO]) extends DroneHubService:
 
+  private val dockerUri = uri"http://drone-hub-service:9067/drone_hub/delivery"
+
   private val baseUri = uri"http://localhost:9067"
   private val endpoint = baseUri / "drone_hub" / "delivery"
 
   override def shipOrder(order: Order): IO[DroneId] =
     val payload = DroneOrderRequest(order)
-    val request = Request[IO](Method.POST, endpoint).withEntity(payload)
+    val request = Request[IO](Method.POST, dockerUri).withEntity(payload)
 
     client.expect[DroneId](request)
 
