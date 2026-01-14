@@ -1,14 +1,16 @@
 package drone_tracking_service.infrastructure
 
 import cats.effect.{ExitCode, IO, IOApp}
+import cats.syntax.all.*
 import com.comcast.ip4s.*
-import drone_tracking_service.application.{TrackingService, TrackingServiceImpl}
+import drone_tracking_service.application.TrackingServiceImpl
 import drone_tracking_service.domain.{DroneTelemetry, TrackingRequest}
 import io.circe.generic.auto.*
 import org.http4s.circe.CirceEntityCodec.*
 import org.http4s.dsl.io.*
 import org.http4s.ember.server.EmberServerBuilder
-import org.http4s.server.middleware.Logger
+import org.http4s.metrics.prometheus.{Prometheus, PrometheusExportService}
+import org.http4s.server.middleware.{Logger, Metrics}
 import org.http4s.{HttpRoutes, Response}
 
 object TrackingServiceMain extends IOApp:
@@ -38,14 +40,25 @@ object TrackingServiceMain extends IOApp:
 
   override def run(args: List[String]): IO[ExitCode] =
     TrackingServiceImpl.create.flatMap { trackingService =>
-      val httpApp = Logger.httpApp(true, true)(routes(trackingService).orNotFound)
 
-      EmberServerBuilder
-        .default[IO]
-        .withHost(host"0.0.0.0")
-        .withPort(BACKEND_PORT)
-        .withHttpApp(httpApp)
-        .build
+      val appResource = for
+        metricsSvc <- PrometheusExportService.build[IO]
+        metricsOps <- Prometheus.metricsOps[IO](metricsSvc.collectorRegistry, "tracking_service")
+
+        businessRoutes = routes(trackingService)
+        meteredRoutes = Metrics[IO](metricsOps)(businessRoutes)
+
+        httpApp = Logger.httpApp(true, true)((metricsSvc.routes <+> meteredRoutes).orNotFound)
+
+        server <- EmberServerBuilder
+          .default[IO]
+          .withHost(host"0.0.0.0")
+          .withPort(BACKEND_PORT)
+          .withHttpApp(httpApp)
+          .build
+      yield server
+
+      appResource
         .use(_ => IO.never)
         .as(ExitCode.Success)
     }
