@@ -109,6 +109,10 @@ object APIGateway extends IOApp:
             handleClientError("logout")(error)
         else
           Ok("Nessun utente era loggato")
+
+      case GET -> Root / "health" =>
+        Ok("{\"status\": \"UP\"}")
+
       case _ => Ok("api not found")
 
   override def run(args: List[String]): IO[ExitCode] =
