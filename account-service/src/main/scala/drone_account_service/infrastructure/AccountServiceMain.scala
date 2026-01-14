@@ -14,7 +14,9 @@ import org.http4s.circe.CirceEntityCodec.*
 import org.http4s.dsl.io.*
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits.*
-import org.http4s.server.middleware.Logger
+import org.http4s.metrics.prometheus.{Prometheus, PrometheusExportService}
+import cats.syntax.all.*
+import org.http4s.server.middleware.{Logger, Metrics}
 
 object AccountServiceMain extends IOApp:
 
@@ -44,19 +46,45 @@ object AccountServiceMain extends IOApp:
             InternalServerError(s"Errore imprevisto: ${e.getMessage}")
     case _ => NotFound("Rotta non trovata")
 
-  def run(args: List[String]): IO[ExitCode] =
-    FileDatabase.make("data/accounts.json").use: commandQueue => //it is now using docker files
-      val accountService = new AccountServiceImpl(commandQueue)
-      val httpApp = Logger.httpApp(true, true)(accountRoutes(accountService).orNotFound)
+//  def run(args: List[String]): IO[ExitCode] =
+//    FileDatabase.make("data/accounts.json").use: commandQueue => //it is now using docker files
+//      val accountService = new AccountServiceImpl(commandQueue)
+//      val httpApp = Logger.httpApp(true, true)(accountRoutes(accountService).orNotFound)
+//
+//      IO.println("🚀 Account Service is starting on port 8081...") *>
+//
+//      EmberServerBuilder
+//        .default[IO]
+//        .withHost(host"0.0.0.0")
+//        .withPort(port"8081")
+//        .withHttpApp(httpApp)
+//        .build
+//        .use(_ => IO.never)
+//
+//   .as(ExitCode.Success)
 
-      IO.println("🚀 Account Service is starting on port 8081...") *>
+  override def run(args: List[String]): IO[ExitCode] =
+    val appResource = for
+      commandQueue <- FileDatabase.make("data/accounts.json")
 
-      EmberServerBuilder
+      metricsSvc <- PrometheusExportService.build[IO]
+      metricsOps <- Prometheus.metricsOps[IO](metricsSvc.collectorRegistry, "account_service")
+
+      accountService = new AccountServiceImpl(commandQueue)
+
+      businessRoutes = accountRoutes(accountService)
+      meteredRoutes = Metrics[IO](metricsOps)(businessRoutes)
+
+      httpApp = Logger.httpApp(true, true)((metricsSvc.routes <+> meteredRoutes).orNotFound)
+
+      server <- EmberServerBuilder
         .default[IO]
         .withHost(host"0.0.0.0")
         .withPort(port"8081")
         .withHttpApp(httpApp)
         .build
-        .use(_ => IO.never)
 
-    .as(ExitCode.Success)
+    yield server
+
+    IO.println(s"🚀 Account Service is starting on port 8081...") *>
+      appResource.use(_ => IO.never).as(ExitCode.Success)
