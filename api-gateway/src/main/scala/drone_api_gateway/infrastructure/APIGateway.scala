@@ -120,7 +120,7 @@ object APIGateway extends IOApp:
 
       meteredRoutes = Metrics[IO](metricsOps)(baseRoutes)
 
-      httpApp = Logger.httpApp(true, true)((meteredRoutes <+> metricsSvc.routes).orNotFound)
+      httpApp = Logger.httpApp(true, true)((metricsSvc.routes <+> meteredRoutes).orNotFound)
 
       server <- EmberServerBuilder
         .default[IO]
