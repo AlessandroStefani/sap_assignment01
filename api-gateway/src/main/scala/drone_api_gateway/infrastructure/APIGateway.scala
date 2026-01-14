@@ -11,8 +11,10 @@ import org.http4s.client.Client
 import org.http4s.dsl.io.*
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
-import org.http4s.server.middleware.Logger
+import org.http4s.metrics.prometheus.{Prometheus, PrometheusExportService}
+import org.http4s.server.middleware.{Logger, Metrics}
 import org.http4s.{HttpRoutes, Response}
+import cats.syntax.all.*
 
 import scala.language.postfixOps
 
@@ -110,7 +112,15 @@ object APIGateway extends IOApp:
   override def run(args: List[String]): IO[ExitCode] =
     val appResource = for
       client <- EmberClientBuilder.default[IO].build
-      httpApp = Logger.httpApp(true, true)(routes(client).orNotFound)
+
+      baseRoutes = routes(client)
+
+      metricsSvc <- PrometheusExportService.build[IO]
+      metricsOps <- Prometheus.metricsOps[IO](metricsSvc.collectorRegistry, "api_gateway")
+
+      meteredRoutes = Metrics[IO](metricsOps)(baseRoutes)
+
+      httpApp = Logger.httpApp(true, true)((meteredRoutes <+> metricsSvc.routes).orNotFound)
 
       server <- EmberServerBuilder
         .default[IO]
