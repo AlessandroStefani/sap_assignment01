@@ -100,9 +100,11 @@ object APIGateway extends IOApp:
       case POST -> Root / apiRootVersion / "logout" =>
         if loggedUser.isDefined then
           val userToLogout = loggedUser.get
-          accountServiceProxy.logoutUser(userToLogout).flatMap: _ =>
-            loggedUser = Option.empty
-            Ok("Logout effettuato correttamente")
+          accountServiceProxy.logoutUser(userToLogout).flatMap: result =>
+            if result then
+              loggedUser = Option.empty
+              Ok("Logout effettuato correttamente")
+            else Ok("Nessun utente era loggato")
           .handleErrorWith: error =>
             handleClientError("logout")(error)
         else
