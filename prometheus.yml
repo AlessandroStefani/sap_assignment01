@@ -1,0 +1,28 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  # 1. API Gateway
+  - job_name: 'api_gateway'
+    static_configs:
+      - targets: ['api-gateway:8080']
+
+  # 2. Account Service
+  - job_name: 'account_service'
+    static_configs:
+      - targets: ['account-service:8081']
+
+  # 3. Order Service
+  - job_name: 'order_service'
+    static_configs:
+      - targets: ['order-service:9068']
+
+  # 4. Drone Hub Service
+  - job_name: 'drone_hub_service'
+    static_configs:
+      - targets: ['drone-hub-service:9067']
+
+  # 5. Tracking Service
+  - job_name: 'tracking_service'
+    static_configs:
+      - targets: ['tracking-service:8083']
