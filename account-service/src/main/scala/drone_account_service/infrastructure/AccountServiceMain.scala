@@ -48,37 +48,18 @@ object AccountServiceMain extends IOApp:
     case GET -> Root / "health" => 
       Ok("OK")
 
-    case _ => NotFound("Rotta non trovata")
-
-//  def run(args: List[String]): IO[ExitCode] =
-//    FileDatabase.make("data/accounts.json").use: commandQueue => //it is now using docker files
-//      val accountService = new AccountServiceImpl(commandQueue)
-//      val httpApp = Logger.httpApp(true, true)(accountRoutes(accountService).orNotFound)
-//
-//      IO.println("🚀 Account Service is starting on port 8081...") *>
-//
-//      EmberServerBuilder
-//        .default[IO]
-//        .withHost(host"0.0.0.0")
-//        .withPort(port"8081")
-//        .withHttpApp(httpApp)
-//        .build
-//        .use(_ => IO.never)
-//
-//   .as(ExitCode.Success)
-
   override def run(args: List[String]): IO[ExitCode] =
     val appResource = for
-      commandQueue <- FileDatabase.make("data/accounts.json")
+      dbComponents <- FileDatabase.make("data/accounts.json")
+      (commandQueue, accountReader) = dbComponents
+
+      service = new AccountServiceImpl(commandQueue, accountReader)
 
       metricsSvc <- PrometheusExportService.build[IO]
       metricsOps <- Prometheus.metricsOps[IO](metricsSvc.collectorRegistry, "account_service")
 
-      accountService = new AccountServiceImpl(commandQueue)
-
-      businessRoutes = accountRoutes(accountService)
+      businessRoutes = accountRoutes(service)
       meteredRoutes = Metrics[IO](metricsOps)(businessRoutes)
-
       httpApp = Logger.httpApp(true, true)((metricsSvc.routes <+> meteredRoutes).orNotFound)
 
       server <- EmberServerBuilder
@@ -87,8 +68,7 @@ object AccountServiceMain extends IOApp:
         .withPort(port"8081")
         .withHttpApp(httpApp)
         .build
-
     yield server
 
-    IO.println(s"🚀 Account Service is starting on port 8081...") *>
+    IO.println("🚀 Account Service is starting...") *>
       appResource.use(_ => IO.never).as(ExitCode.Success)

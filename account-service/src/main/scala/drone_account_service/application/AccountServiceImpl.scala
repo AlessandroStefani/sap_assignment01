@@ -2,32 +2,35 @@ package drone_account_service.application
 
 import cats.effect.{Deferred, IO}
 import cats.effect.std.Queue
-import drone_account_service.application.AccountService
 import drone_account_service.domain.Account
-import drone_account_service.infrastructure.{AccountCommand, RegisterCommand, LoginCommand}
+import drone_account_service.infrastructure.{AccountCommand, RegisterCommand}
 
-class AccountServiceImpl(queue: Queue[IO, AccountCommand]) extends AccountService:
+class AccountServiceImpl(
+                          commandQueue: Queue[IO, AccountCommand],
+                          accountReader: IO[List[Account]]
+                        ) extends AccountService:
 
   private var loggedUsers: List[String] = List.empty
 
   override def registerUser(username: String, password: String): IO[Account] =
     for
       deferred <- Deferred[IO, Either[Throwable, Account]]
-      _ <- queue.offer(RegisterCommand(username, password, deferred))
+      // WRITE SIDE: Send to Queue
+      _ <- commandQueue.offer(RegisterCommand(username, password, deferred))
       result <- deferred.get
       account <- IO.fromEither(result)
     yield account
 
   override def loginUser(username: String, password: String): IO[Boolean] =
-    for
-      deferred <- Deferred[IO, Boolean]
-      _ <- queue.offer(LoginCommand(username, password, deferred))
-      isValid <- deferred.get
-      _ <- IO {
+    // READ SIDE: Read directly from memory (via FileDatabase Ref)
+    accountReader.flatMap { accounts =>
+      val isValid = accounts.exists(a => a.username == username && a.password == password)
+      IO {
         if isValid && !loggedUsers.contains(username) then
           loggedUsers = username :: loggedUsers
+        isValid
       }
-    yield isValid
+    }
 
   override def logoutUser(username: String): IO[Boolean] = IO {
     if loggedUsers.contains(username) then

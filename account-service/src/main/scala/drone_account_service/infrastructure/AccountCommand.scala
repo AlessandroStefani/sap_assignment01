@@ -10,9 +10,3 @@ case class RegisterCommand(
                             password: String,
                             replyTo: Deferred[IO, Either[Throwable, Account]]
                           ) extends AccountCommand
-
-case class LoginCommand(
-                         username: String,
-                         password: String,
-                         replyTo: Deferred[IO, Boolean]
-                       ) extends AccountCommand
