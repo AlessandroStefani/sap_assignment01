@@ -44,6 +44,10 @@ object AccountServiceMain extends IOApp:
             Conflict(s"Errore: ${e.getMessage}")
           case e =>
             InternalServerError(s"Errore imprevisto: ${e.getMessage}")
+
+    case GET -> Root / "health" => 
+      Ok("OK")
+
     case _ => NotFound("Rotta non trovata")
 
 //  def run(args: List[String]): IO[ExitCode] =

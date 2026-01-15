@@ -38,6 +38,11 @@ object TrackingServiceMain extends IOApp:
             NotFound(s"Tracking info not found or mismatch: ${error.getMessage}")
         }
 
+      case GET -> Root / "health" =>
+        Ok("OK")
+
+      case _ => NotFound("Rotta non trovata")
+
   override def run(args: List[String]): IO[ExitCode] =
     TrackingServiceImpl.create.flatMap { trackingService =>
 
