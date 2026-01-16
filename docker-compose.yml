@@ -51,6 +51,8 @@ services:
       - "8083:8083"
     expose: 
       - 8083
+    volumes:
+      - ./docker-data/tracking:/app/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8083/health"]
       interval: 10s

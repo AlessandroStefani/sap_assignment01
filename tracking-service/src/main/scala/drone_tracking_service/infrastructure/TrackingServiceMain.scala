@@ -44,26 +44,28 @@ object TrackingServiceMain extends IOApp:
       case _ => NotFound("Rotta non trovata")
 
   override def run(args: List[String]): IO[ExitCode] =
-    TrackingServiceImpl.create.flatMap { trackingService =>
+    val dbResource = FileEventStore.make("data/tracking-events.json")
 
-      val appResource = for
-        metricsSvc <- PrometheusExportService.build[IO]
-        metricsOps <- Prometheus.metricsOps[IO](metricsSvc.collectorRegistry, "tracking_service")
+    val appResource = for
+      dbComponents <- dbResource
+      (eventStore, stateRef) = dbComponents
 
-        businessRoutes = routes(trackingService)
-        meteredRoutes = Metrics[IO](metricsOps)(businessRoutes)
+      trackingService = new TrackingServiceImpl(stateRef, eventStore)
 
-        httpApp = Logger.httpApp(true, true)((metricsSvc.routes <+> meteredRoutes).orNotFound)
+      metricsSvc <- PrometheusExportService.build[IO]
+      metricsOps <- Prometheus.metricsOps[IO](metricsSvc.collectorRegistry, "tracking_service")
 
-        server <- EmberServerBuilder
-          .default[IO]
-          .withHost(host"0.0.0.0")
-          .withPort(BACKEND_PORT)
-          .withHttpApp(httpApp)
-          .build
-      yield server
+      businessRoutes = routes(trackingService)
+      meteredRoutes = Metrics[IO](metricsOps)(businessRoutes)
+      httpApp = Logger.httpApp(true, true)((metricsSvc.routes <+> meteredRoutes).orNotFound)
 
-      appResource
-        .use(_ => IO.never)
-        .as(ExitCode.Success)
-    }
+      server <- EmberServerBuilder
+        .default[IO]
+        .withHost(host"0.0.0.0")
+        .withPort(BACKEND_PORT)
+        .withHttpApp(httpApp)
+        .build
+    yield server
+
+    IO.println("🚀 Tracking Service is starting...") *>
+      appResource.use(_ => IO.never).as(ExitCode.Success)

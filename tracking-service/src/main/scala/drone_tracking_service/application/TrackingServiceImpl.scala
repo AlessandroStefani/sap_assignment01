@@ -2,10 +2,12 @@ package drone_tracking_service.application
 
 import cats.effect.{IO, Ref}
 import drone_tracking_service.domain.{DroneTelemetry, TrackingRequest}
+import drone_tracking_service.infrastructure.EventStore
 
-class TrackingServiceImpl(state: Ref[IO, Map[String, DroneTelemetry]]) extends TrackingService with DroneStateUpdater:
+class TrackingServiceImpl(state: Ref[IO, Map[String, DroneTelemetry]], eventStore: EventStore) extends TrackingService with DroneStateUpdater:
 
   override def updateDronePosition(telemetry: DroneTelemetry): IO[Unit] =
+    eventStore.persist(telemetry) *>
     state.update { currentMap =>
       currentMap + (telemetry.droneId -> telemetry)
     } *> IO.println(s"[TrackingService] Updated telemetry for drone ${telemetry.droneId} carrying order ${telemetry.orderId}")
@@ -21,7 +23,3 @@ class TrackingServiceImpl(state: Ref[IO, Map[String, DroneTelemetry]]) extends T
         case None =>
           IO.raiseError(new IllegalArgumentException(s"No telemetry found for drone ${request.droneId}"))
     }
-
-object TrackingServiceImpl:
-  def create: IO[TrackingServiceImpl] =
-    Ref.of[IO, Map[String, DroneTelemetry]](Map.empty).map(new TrackingServiceImpl(_))
