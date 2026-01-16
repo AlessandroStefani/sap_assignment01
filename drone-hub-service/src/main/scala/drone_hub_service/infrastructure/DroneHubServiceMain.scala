@@ -26,6 +26,9 @@ object DroneHubServiceMain extends IOApp:
         case e => InternalServerError(s"Errore imprevisto: ${e.getMessage}")
       }
 
+    case GET -> Root / "health" =>
+      Ok("OK")
+
   override def run(args: List[String]): IO[ExitCode] =
     val appResource = for
       client <- EmberClientBuilder.default[IO].build

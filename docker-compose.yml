@@ -69,6 +69,12 @@ services:
       - "9068:9068"
     expose: 
       - 9068
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9068/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
   drone-hub-service:
     build:
       context: ./drone-hub-service
@@ -81,6 +87,12 @@ services:
       - "9067:9067"
     expose: 
       - 9067
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9067/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
   prometheus:
       image: prom/prometheus:latest
       container_name: drone-prometheus

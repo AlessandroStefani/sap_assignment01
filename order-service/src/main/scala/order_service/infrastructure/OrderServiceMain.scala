@@ -37,6 +37,9 @@ object OrderServiceMain extends IOApp:
     case GET -> Root / "order" / "user" / userId =>
       service.getOrders(userId).flatMap(Ok(_))
 
+    case GET -> Root / "health" =>
+      Ok("OK")
+
   override def run(args: List[String]): IO[ExitCode] =
     EmberClientBuilder.default[IO].build.use { client =>
       val orderRepo = InMemoryOrderRepoImpl
