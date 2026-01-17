@@ -8,9 +8,11 @@ import org.http4s.HttpRoutes
 import org.http4s.dsl.io.*
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
-import org.http4s.server.middleware.Logger
+import org.http4s.server.middleware.{Logger, Metrics}
 import org.http4s.circe.CirceEntityCodec.*
 import io.circe.generic.auto.*
+import org.http4s.metrics.prometheus.{Prometheus, PrometheusExportService}
+import cats.syntax.all.*
 
 object DroneHubServiceMain extends IOApp:
   private val DRONEHUB_PORT = port"9067"
@@ -36,7 +38,16 @@ object DroneHubServiceMain extends IOApp:
       trackingProxy = new DroneTrackingProxy(client)
       droneHubService = new DroneHubServiceImpl(trackingProxy)
       
-      httpApp = Logger.httpApp(true, true)(routes(droneHubService).orNotFound)
+      //httpApp = Logger.httpApp(true, true)(routes(droneHubService).orNotFound)
+
+      metricsSvc <- PrometheusExportService.build[IO]
+      metricsOps <- Prometheus.metricsOps[IO](metricsSvc.collectorRegistry, "drone_hub_service")
+
+      businessRoutes = routes(droneHubService)
+      meteredRoutes = Metrics[IO](metricsOps)(businessRoutes)
+
+      httpApp = Logger.httpApp(true, true)((metricsSvc.routes <+> meteredRoutes).orNotFound)
+
       server <- EmberServerBuilder
         .default[IO]
         .withHost(host"0.0.0.0")
