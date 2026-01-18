@@ -40,3 +40,5 @@ assembly / assemblyMergeStrategy := {
     val oldStrategy = (assembly / assemblyMergeStrategy).value
     oldStrategy(x)
 }
+
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.18" % Test
