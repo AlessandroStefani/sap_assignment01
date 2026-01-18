@@ -1,8 +1,7 @@
-package application
+package order_service.application
 
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
-import order_service.application.{OrderRepository, OrderServiceImpl}
 import order_service.domain.{Order, OrderId}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -10,7 +9,7 @@ import org.scalatest.matchers.should.Matchers
 import java.time.Instant
 
 class OrderServiceImplTest extends AnyFlatSpec with Matchers:
-  
+
   class StubOrderRepository extends OrderRepository:
     var store: Map[String, List[Order]] = Map.empty
 
