@@ -58,7 +58,14 @@ object OrderServiceMain extends IOApp:
         businessRoutes = routes(orderService)
         meteredRoutes = Metrics[IO](metricsOps)(businessRoutes)
 
-        httpApp = Logger.httpApp(true, true)((metricsSvc.routes <+> meteredRoutes).orNotFound)
+        /*httpApp = Logger.httpApp(true, false)((metricsSvc.routes <+> meteredRoutes).orNotFound)*/
+
+        silentHealthRoute = HttpRoutes.of[IO] {
+          case GET -> Root / "health" => Ok("OK") 
+        }
+        silentRoutes = metricsSvc.routes <+> silentHealthRoute
+        loggedBusinessRoutes = Logger.httpRoutes(true, false)(meteredRoutes)
+        httpApp = (silentRoutes <+> loggedBusinessRoutes).orNotFound
 
         _ <- dispatcher.start.background
         server <- EmberServerBuilder
