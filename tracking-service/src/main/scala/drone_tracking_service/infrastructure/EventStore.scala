@@ -6,6 +6,7 @@ import fs2.io.file.{Files, Path}
 import io.circe.parser.*
 import io.circe.syntax.*
 import io.circe.generic.auto.*
+import java.time.Instant
 
 trait EventStore:
   def persist(event: DroneTelemetry): IO[Unit]
@@ -13,7 +14,7 @@ trait EventStore:
 class FileEventStore private (filePath: Path) extends EventStore:
 
   override def persist(event: DroneTelemetry): IO[Unit] =
-    val jsonLine = event.asJson.noSpaces + "\n"
+    val jsonLine = event.asJson.noSpaces + Instant.now().toString + "\n"
     fs2.Stream(jsonLine)
       .through(fs2.text.utf8.encode)
       .through(Files[IO].writeAll(filePath, fs2.io.file.Flags.Append))
