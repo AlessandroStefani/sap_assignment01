@@ -126,7 +126,14 @@ object APIGateway extends IOApp:
 
       meteredRoutes = Metrics[IO](metricsOps)(baseRoutes)
 
-      httpApp = Logger.httpApp(true, true)((metricsSvc.routes <+> meteredRoutes).orNotFound)
+      /*httpApp = Logger.httpApp(true, false)((metricsSvc.routes <+> meteredRoutes).orNotFound)*/
+
+      silentHealthRoute = HttpRoutes.of[IO] { 
+        case GET -> Root / "health" => Ok("{\"status\": \"UP\"}") 
+      }
+      silentRoutes = metricsSvc.routes <+> silentHealthRoute
+      loggedBusinessRoutes = Logger.httpRoutes(true, false)(meteredRoutes)
+      httpApp = (silentRoutes <+> loggedBusinessRoutes).orNotFound
 
       server <- EmberServerBuilder
         .default[IO]

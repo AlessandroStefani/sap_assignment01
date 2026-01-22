@@ -46,7 +46,15 @@ object DroneHubServiceMain extends IOApp:
       businessRoutes = routes(droneHubService)
       meteredRoutes = Metrics[IO](metricsOps)(businessRoutes)
 
-      httpApp = Logger.httpApp(true, true)((metricsSvc.routes <+> meteredRoutes).orNotFound)
+      /*httpApp = Logger.httpApp(true, false)((metricsSvc.routes <+> meteredRoutes).orNotFound)*/
+
+
+      silentHealthRoute = HttpRoutes.of[IO] {
+        case GET -> Root / "health" => Ok("OK") 
+      }
+      silentRoutes = metricsSvc.routes <+> silentHealthRoute
+      loggedBusinessRoutes = Logger.httpRoutes(true, false)(meteredRoutes)
+      httpApp = (silentRoutes <+> loggedBusinessRoutes).orNotFound
 
       server <- EmberServerBuilder
         .default[IO]
