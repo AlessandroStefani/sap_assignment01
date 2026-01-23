@@ -17,7 +17,6 @@ object TrackingServiceMain extends IOApp:
 
   private def routes(trackingService: TrackingServiceImpl): HttpRoutes[IO] =
     HttpRoutes.of[IO]:
-      // 1. Endpoint per ricevere aggiornamenti dal drone (usato da drone-hub-service)
       case req @ POST -> Root / "api" / "tracking" / "update" =>
         req.as[DroneTelemetry].flatMap { telemetry =>
           IO.println(s"📡 [TrackingService] RICEVUTO telemetry: $telemetry") *>
@@ -27,7 +26,6 @@ object TrackingServiceMain extends IOApp:
             BadRequest(s"Invalid data: ${error.getMessage}")
         }
 
-      // 2. Endpoint per il client (API Gateway o utente finale)
       case req @ POST -> Root / "tracking" / "trackDrone" =>
         req.as[TrackingRequest].flatMap { trackRequest =>
           trackingService.trackDrone(trackRequest).flatMap { trackingInfo =>
@@ -39,7 +37,9 @@ object TrackingServiceMain extends IOApp:
         }
 
   override def run(args: List[String]): IO[ExitCode] =
-    TrackingServiceImpl.create.flatMap { trackingService =>
+    InMemoryRepository.create.flatMap { repo =>
+      TrackingServiceImpl.create(repo)
+    }.flatMap { trackingService =>
       val httpApp = Logger.httpApp(true, true)(routes(trackingService).orNotFound)
 
       EmberServerBuilder
