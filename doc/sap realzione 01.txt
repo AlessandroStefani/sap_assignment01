@@ -1,0 +1,69 @@
+-Domain Model:
+Analizzando il testo si è potuto individuare un dominio 
+
+-Ubiquitous language:
+
+-Bounded contexts:
+
+-Architettura Esagonale:
+E’ stata adottata l’architettura esagonale per isolare il cuore del sistema dalle tecnologie esterne. Grazie a questo, la logica di business è gestita in modo indipendente.
+L’architettura è supportata da annotazioni: Ports e Adapters. Le prime definiscono i confini del sistema, le porte in ingresso espongono le funzionalità del dominio, mentre quelle in uscita dichiarano le necessità del dominio verso l’esterno; Adapters invece rappresentano le implementazioni concrete delle porte.
+All’interno dei microservizi la logica è racchiusa negli strati di Domain e Application. Domain contiene le entità pure che incorporano le regole di business fondamentali, mentre in Application risiedono le porte. Gli Adapters si trovano nella parte infrastrutturale e implementano le porte definite nello strato di Application sotto forma di proxy. Infatti, quando un microservizio deve comunicare con un’altro, questo non lo fa direttamente ma tramite una porta la cui implementazione concreta è un adattatore proxy.
+
+-Account Service
+Questo servizio gestisce le operazioni di login e di registrazione di un utente.
+
+Application Layer
+Il core del servizio è rappresentato dal trait AccountService, definito come Inbound Port. Questo contratto definisce cosa il servizio fa, senza specificare come queste operazioni vengano richiamate dall’esterno. L’implementazione in AccountServiceImpl implementa la logica di gestione degli utenti interagendo con un AccountRepository. Quest’ultimo, definito come OutBoundPort, è un contratto che definisce le operazioni di register e login di un utente, senza però fare dipendere la logica di business da una implementazione specifica. 
+
+Domain layer
+Questa parte contiene le entità di business: Account e AccountPost. Account rappresenta l’entità utente, mentre AccountPost funge da oggetto di trasferimento dati per i messaggi in ingresso.
+
+Infrastructure layer
+L’adattatore FileDatabase, presente nella parte di infrastruttura del servizio, implementa il trait AccountRepository, isolandone i dettegli implementativi ed implementando la persistenza su file system.
+
+-Tracking Service
+Questo servizio è responsabile del monitoraggio in tempo reale della posizione dei droni e della fornitura di informazioni sulla consegna agli utenti.
+
+Domain Layer
+Il layer di dominio definisce le strutture dati fondamentali per il tracciamento, agendo come nucleo informativo del servizio:
+
+DroneTelemetry: Rappresenta il messaggio di stato inviato dal drone, includendo identificativi (drone e ordine), coordinate geografiche (latitudine e longitudine) e il tempo stimato di arrivo (TTA).
+
+TrackingRequest: Definisce i criteri di ricerca per un utente che desidera localizzare una consegna, richiedendo sia l'ID del drone che l'ID dell'ordine per garantire la precisione della richiesta.
+
+Application Layer:
+In questo strato viene definita la logica di gestione dello stato e i contratti per l'interazione:
+
+Inbound Ports: Sono definiti due trait annotati con @InBoundPort. TrackingService espone le funzionalità di interrogazione per i client, mentre DroneStateUpdater definisce l'interfaccia per l'aggiornamento dei dati di telemetria. TrackingServiceImpl presenta l’implementazione di questi contratti svolta attraverso le chiamate ai metodi del trait DroneRepository.
+
+OutBound Port: è definito un trait con @OutBoundPort: DroneRepository. Questo contratto ha la funzione di definire le operazioni necessarie per gestire i dati relativi ai droni. 
+
+Infrastructure Layer:
+In questo strato troviamo l’implementazione concreta di una repository per i droni: InMemoryRepository. Questo è un Adapter, estende DroneRepository e contiene l’implementazione delle funzioni definite nel contratto.
+
+-API Gateway
+L'API Gateway funge da unico punto di contatto per i client, agendo come un "facciata" che nasconde la complessità dell'architettura a microservizi. Il suo compito principale è l'instradamento delle richieste, la gestione semplificata della sessione utente e la trasformazione dei dati tra il client e i servizi di backend.
+
+Domain Layer:
+In questo layer vengono definiti i Data Transfer Objects (DTO) necessari per lo scambio di informazioni attraverso i confini del gateway.
+
+Application Layer
+Questo package definisce le Outbound Ports che il gateway utilizza per interagire con i microservizi di backend; I trait AccountService, OrderService e TrackingService agiscono come fedeli astrazioni delle funzionalità offerte dai rispettivi microservizi.
+
+Infrastructure Layer 
+Il layer infrastrutturale implementa sia il server rivolto al client che i client rivolti ai microservizi:
+
+Outbound Adapters (Proxies): Classi come AccountServiceProxy implementano i port definiti nell'application layer, trasformando le chiamate a metodi in richieste HTTP reali verso i servizi di backend.
+
+APIGateway: Implementa il server HTTP (EmberServer) che espone le rotte dell'applicazione.
+
+Analisi delle Rotte
+Le rotte sono progettate per isolare il client dalla topologia della rete interna:
+
+Autenticazione (/login, /register, /logout): Gestiscono l'accesso tramite AccountServiceProxy. La rotta di login, in particolare, memorizza localmente l'identità dell'utente loggato (loggedUser) per gestire lo stato della sessione in modo centralizzato.
+
+Gestione Ordini (POST /orders, GET /orders): Queste rotte implementano un controllo di sicurezza preventivo: verificano se un utente è loggato prima di inoltrare la richiesta al servizio ordini, sollevando una NotLoggedException in caso contrario.
+
+Tracciamento (POST /trackOrder): Permette agli utenti di monitorare i propri ordini interagendo con il servizio di tracciamento.
+
