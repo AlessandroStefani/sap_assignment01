@@ -1,6 +1,7 @@
 package drone_api_gateway.infrastructure
 
 import cats.effect.IO
+import common.exagonal.Adapter
 import drone_api_gateway.application.TrackingService
 import drone_api_gateway.domain.tracking.{DroneTelemetry, TrackingRequest}
 import org.http4s.client.Client
@@ -9,6 +10,7 @@ import org.http4s.implicits.*
 import org.http4s.circe.CirceEntityCodec.*
 import io.circe.generic.auto.*
 
+@Adapter
 class TrackingServiceProxy(client: Client[IO]) extends TrackingService:
 
   private val trackingServiceUrl = uri"http://localhost:8083/tracking/trackDrone"
