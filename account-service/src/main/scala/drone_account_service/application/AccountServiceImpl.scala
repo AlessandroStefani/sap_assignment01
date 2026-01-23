@@ -1,37 +1,24 @@
 package drone_account_service.application
 
-import cats.effect.{Deferred, IO}
-import cats.effect.std.Queue
-import drone_account_service.application.AccountService
+import cats.effect.IO
 import drone_account_service.domain.Account
-import drone_account_service.infrastructure.{AccountCommand, RegisterCommand, LoginCommand}
 
-class AccountServiceImpl(queue: Queue[IO, AccountCommand]) extends AccountService:
+class AccountServiceImpl(repo: drone_account_service.application.AccountRepository) extends AccountService:
 
-  // Spostiamo qui lo stato della sessione (in memoria)
   private var loggedUsers: List[String] = List.empty
 
   override def registerUser(username: String, password: String): IO[Account] =
-    for
-      deferred <- Deferred[IO, Either[Throwable, Account]]
-      _ <- queue.offer(RegisterCommand(username, password, deferred))
-      result <- deferred.get
-      account <- IO.fromEither(result)
-    yield account
+    repo.register(username, password)
 
   override def loginUser(username: String, password: String): IO[Boolean] =
     for
-      deferred <- Deferred[IO, Boolean]
-      _ <- queue.offer(LoginCommand(username, password, deferred))
-      isValid <- deferred.get
-      // Se le credenziali sono valide, aggiungiamo l'utente alla lista se non c'è già
+      isValid <- repo.login(username, password)
       _ <- IO {
         if isValid && !loggedUsers.contains(username) then
           loggedUsers = username :: loggedUsers
       }
     yield isValid
 
-  // Implementazione della logica di logout interna al metodo
   override def logoutUser(username: String): IO[Boolean] = IO {
     if loggedUsers.contains(username) then
       loggedUsers = loggedUsers.filterNot(_ == username)
