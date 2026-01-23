@@ -1,26 +1,42 @@
 package drone_account_service.infrastructure
 
+import cats.effect.*
 import cats.effect.std.Queue
-import cats.effect.{IO, Ref, Resource}
+import drone_account_service.application.AccountRepository
 import drone_account_service.domain.Account
-import fs2.io.file.{Files, Path}
+import common.exagonal.Adapter
 import io.circe.generic.auto.*
 import io.circe.parser.*
 import io.circe.syntax.*
+import fs2.io.file.{Files, Path}
+
+@Adapter
+class FileDatabase(
+                    private val queue: Queue[IO, AccountCommand],
+                    private val stateRef: Ref[IO, List[Account]]
+                  ) extends AccountRepository:
+
+  override def register(username: String, password: String): IO[Account] =
+    for
+      deferred <- Deferred[IO, Either[Throwable, Account]]
+      _ <- queue.offer(RegisterCommand(username, password, deferred))
+      result <- deferred.get
+      account <- IO.fromEither(result)
+    yield account
+
+  override def login(username: String, password: String): IO[Boolean] =
+    stateRef.get.map(_.exists(a => a.username == username && a.password == password))
 
 object FileDatabase:
-
-  def make(filePath: String): Resource[IO, (Queue[IO, AccountCommand], IO[List[Account]])] =
+  def make(filePath: String): Resource[IO, AccountRepository] =
     val path = Path(filePath)
-
     Resource.eval(for
       _ <- initializeDb(path)
       initialState <- loadFromFile(path)
       stateRef     <- Ref.of[IO, List[Account]](initialState)
       queue <- Queue.bounded[IO, AccountCommand](100)
       _ <- processQueueLoop(queue, stateRef, path).start
-      _ <- IO.println(s"DB Persistence started on file: $filePath")
-    yield (queue, stateRef.get)) // coda è per write(register), ref è per read(login/logout)
+    yield new FileDatabase(queue, stateRef))// coda è per write(register), ref è per read(login/logout)
 
   private def initializeDb(path: Path): IO[Unit] =
     Files[IO].exists(path).flatMap: exists =>

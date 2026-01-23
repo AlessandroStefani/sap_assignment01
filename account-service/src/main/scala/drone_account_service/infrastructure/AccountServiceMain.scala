@@ -51,9 +51,8 @@ object AccountServiceMain extends IOApp:
   override def run(args: List[String]): IO[ExitCode] =
     val appResource = for
       dbComponents <- FileDatabase.make("data/accounts.json")
-      (commandQueue, accountReader) = dbComponents
 
-      service = new AccountServiceImpl(commandQueue, accountReader)
+      service = new AccountServiceImpl(dbComponents)
 
       metricsSvc <- PrometheusExportService.build[IO]
       metricsOps <- Prometheus.metricsOps[IO](metricsSvc.collectorRegistry, "account_service")
