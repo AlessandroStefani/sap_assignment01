@@ -117,6 +117,26 @@ services:
         - "9090:9090"
       networks:
         - drone_network
-
+        
+  system-tests:
+      build:
+        context: ./system-tests
+        dockerfile: Dockerfile
+      container_name: drone-system-tests
+      networks:
+        - drone_network
+      environment:
+        - API_GATEWAY_URL=http://api-gateway:8080
+      depends_on:
+        api-gateway:
+          condition: service_healthy
+        order-service:
+          condition: service_healthy
+        account-service:
+          condition: service_healthy
+        tracking-service:
+          condition: service_healthy
+        drone-hub-service:
+          condition: service_healthy
 networks:
   drone_network:
