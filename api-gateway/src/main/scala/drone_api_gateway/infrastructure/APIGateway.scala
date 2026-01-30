@@ -13,7 +13,7 @@ import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.metrics.prometheus.{Prometheus, PrometheusExportService}
 import org.http4s.server.middleware.{Logger, Metrics}
-import org.http4s.{HttpRoutes, Response}
+import org.http4s.{HttpRoutes, Response, ResponseCookie, SameSite}
 import cats.syntax.all.*
 
 import scala.language.postfixOps
@@ -23,7 +23,8 @@ object APIGateway extends IOApp:
 
   private val apiRootVersion = "test"
   
-  private var loggedUser: Option[String] = Option.empty
+
+  private val COOKIE_NAME = "drone_auth_session"
 
   private def handleClientError(serviceName: String)(error: Throwable): IO[Response[IO]] =
     IO.println(s"ERRORE CLIENT: ${error.getMessage}") *>
@@ -42,10 +43,18 @@ object APIGateway extends IOApp:
               accountServiceProxy.loginUser(login.username, login.password).flatMap:
                 isLogged =>
                   if isLogged then 
-                    loggedUser = Some(login.username)
-                    Ok("Login effettuato")
+
+                    val authCookie = ResponseCookie(
+                      name = COOKIE_NAME,
+                      content = login.username,
+                      httpOnly = true,
+                      secure = false,
+                      path = Some("/"),
+                      sameSite = Some(SameSite.Strict)
+                    )
+
+                    Ok("Login effettuato")map(_.addCookie(authCookie))
                   else
-                    //NotFound("errore nel login, account non trovato o credenziali sbagliate")
                     throw new LoginErrorException
         .handleErrorWith: error =>
           IO.println(s"ERRORE CLIENT: ${error.getMessage}") *>
@@ -64,47 +73,67 @@ object APIGateway extends IOApp:
 
       case req @ POST -> Root / apiRootVersion / "orders" =>
         req.as[NewOrderRequest].flatMap: orderDto =>
-          if loggedUser.isDefined then
-            orderServiceProxy.placeOrder(
-              loggedUser.get,
-              orderDto.origin,
-              orderDto.destination,
-              orderDto.weight,
-              orderDto.departureDate
-            ).flatMap(res => Accepted(res))
-          else
-            throw new NotLoggedException()
+
+          val userFromCookie = req.cookies.find(_.name == COOKIE_NAME).map(_.content)
+
+          userFromCookie match
+            case Some(username) =>
+              orderServiceProxy.placeOrder(
+                username,
+                orderDto.origin,
+                orderDto.destination,
+                orderDto.weight,
+                orderDto.departureDate
+              ).flatMap(res => Accepted(res))
+            case None =>
+              throw new NotLoggedException()
         .handleErrorWith: error =>
           handleClientError("creazione ordine")(error)
 
-      case GET -> Root / apiRootVersion / "orders" =>
-        if loggedUser.isDefined then
-          orderServiceProxy.getOrders(loggedUser.get)
-            .flatMap(orders => Ok(orders))
-            .handleErrorWith(error => handleClientError("recupero ordini")(error))
-        else
-          handleClientError("recupero ordini")(NotLoggedException())
+      case req @ GET -> Root / apiRootVersion / "orders" =>
+        val userFromCookie = req.cookies.find(_.name == COOKIE_NAME).map(_.content)
+
+        userFromCookie match
+          case Some(username) =>
+            orderServiceProxy.getOrders(username)
+              .flatMap(orders => Ok(orders))
+              .handleErrorWith(error => handleClientError("recupero ordini")(error))
+          case None =>
+            handleClientError("recupero ordini")(NotLoggedException())
 
       case req @ POST -> Root / apiRootVersion / "trackOrder" =>
-        req.as[TrackingRequest].flatMap:
-          trackOrder =>
-            if loggedUser.isDefined then
-              trackingServiceProxy.trackDrone(TrackingRequest(trackOrder.orderId, trackOrder.droneId)).flatMap:
-                res => Ok(res)
-            else
-              throw new NotLoggedException()
+        req.as[TrackingRequest].flatMap: trackOrder =>
+          val userFromCookie = req.cookies.find(_.name == COOKIE_NAME).map(_.content)
+
+          if userFromCookie.isDefined then
+            trackingServiceProxy.trackDrone(TrackingRequest(trackOrder.orderId, trackOrder.droneId)).flatMap: res =>
+              Ok(res)
+          else
+            throw new NotLoggedException()
               
         .handleErrorWith: error =>
           handleClientError("tracciamento ordine")(error)
 
-      case POST -> Root / apiRootVersion / "logout" =>
-        if loggedUser.isDefined then
-          val userToLogout = loggedUser.get
-          accountServiceProxy.logoutUser(userToLogout).flatMap: result =>
+      case req @ POST -> Root / apiRootVersion / "logout" =>
+        val userToLogout = req.cookies.find(_.name == COOKIE_NAME).map(_.content)
+
+        if userToLogout.isDefined then
+
+          val clearCookie = ResponseCookie(
+            name = COOKIE_NAME,
+            content = "",
+            httpOnly = true,
+            secure = false,
+            path = Some("/"),
+            maxAge = Some(0),
+            sameSite = Some(SameSite.Strict)
+          )
+
+          accountServiceProxy.logoutUser(userToLogout.get).flatMap: result =>
             if result then
-              loggedUser = Option.empty
-              Ok("Logout effettuato correttamente")
-            else Ok("Nessun utente era loggato")
+              Ok("Logout effettuato correttamente").map(_.addCookie(clearCookie))
+            else
+              Ok("Nessun utente era loggato").map(_.addCookie(clearCookie))
           .handleErrorWith: error =>
             handleClientError("logout")(error)
         else
