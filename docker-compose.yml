@@ -78,6 +78,8 @@ services:
       - "9068:9068"
     expose: 
       - 9068
+    volumes:
+      - ./docker-data/orders:/app/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9068/health"]
       interval: 10s

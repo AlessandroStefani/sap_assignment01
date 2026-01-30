@@ -1,0 +1,45 @@
+{
+  "user_1769776616948" : [
+    {
+      "id" : {
+        "id" : "673ce304-aa27-45c6-9398-3880fe3b02ae"
+      },
+      "usrId" : "user_1769776616948",
+      "weight" : 5.5,
+      "origin" : "Magazzino A",
+      "destination" : "Cliente B",
+      "departureDate" : "2026-01-30T13:36:57.938139324Z",
+      "droneId" : {
+        "id" : "1"
+      }
+    }
+  ],
+  "user_1769777093485" : [
+    {
+      "id" : {
+        "id" : "384ea2fa-65c1-4d02-afc6-ee078c6c4df4"
+      },
+      "usrId" : "user_1769777093485",
+      "weight" : 5.5,
+      "origin" : "Magazzino A",
+      "destination" : "Cliente B",
+      "departureDate" : "2026-01-30T13:44:54.298337882Z",
+      "droneId" : null
+    }
+  ],
+  "Marco" : [
+    {
+      "id" : {
+        "id" : "439279a8-e5ca-4596-8d63-a36a3dd71c73"
+      },
+      "usrId" : "Marco",
+      "weight" : 100.0,
+      "origin" : "Via x",
+      "destination" : "Via 7",
+      "departureDate" : "2023-12-15T10:00:00Z",
+      "droneId" : {
+        "id" : "1"
+      }
+    }
+  ]
+}

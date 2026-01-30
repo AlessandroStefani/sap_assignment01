@@ -42,41 +42,36 @@ object OrderServiceMain extends IOApp:
       Ok("OK")
 
   override def run(args: List[String]): IO[ExitCode] =
-    EmberClientBuilder.default[IO].build.use { client =>
-      val orderRepo = InMemoryOrderRepoImpl
-      val droneHub = new DroneHubServiceProxy(client)
+    val appResource = for
+      client <- EmberClientBuilder.default[IO].build
 
-      val orderService = new OrderServiceImpl(orderRepo)
-      val dispatcher = new OrderDispatcher(orderRepo, droneHub)
+      orderRepo <- FileOrderRepository.make("data/orders.json")
 
-      //val httpApp = Logger.httpApp(true, true)(routes(orderService).orNotFound)
+      droneHub = new DroneHubServiceProxy(client)
+      orderService = new OrderServiceImpl(orderRepo)
+      dispatcher = new OrderDispatcher(orderRepo, droneHub)
 
-      val appResource = for
-        metricsSvc <- PrometheusExportService.build[IO]
-        metricsOps <- Prometheus.metricsOps[IO](metricsSvc.collectorRegistry, "order_service")
+      _ <- dispatcher.start.background
 
-        businessRoutes = routes(orderService)
-        meteredRoutes = Metrics[IO](metricsOps)(businessRoutes)
+      metricsSvc <- PrometheusExportService.build[IO]
+      metricsOps <- Prometheus.metricsOps[IO](metricsSvc.collectorRegistry, "order_service")
 
-        /*httpApp = Logger.httpApp(true, false)((metricsSvc.routes <+> meteredRoutes).orNotFound)*/
+      businessRoutes = routes(orderService)
+      meteredRoutes = Metrics[IO](metricsOps)(businessRoutes)
 
-        silentHealthRoute = HttpRoutes.of[IO] {
-          case GET -> Root / "health" => Ok("OK") 
-        }
-        silentRoutes = metricsSvc.routes <+> silentHealthRoute
-        loggedBusinessRoutes = Logger.httpRoutes(true, false)(meteredRoutes)
-        httpApp = (silentRoutes <+> loggedBusinessRoutes).orNotFound
+      silentHealthRoute = HttpRoutes.of[IO] { case GET -> Root / "health" => Ok("OK") }
+      silentRoutes = metricsSvc.routes <+> silentHealthRoute
+      loggedBusinessRoutes = Logger.httpRoutes(true, false)(meteredRoutes)
 
-        _ <- dispatcher.start.background
-        server <- EmberServerBuilder
-          .default[IO]
-          .withHost(host"0.0.0.0")
-          .withPort(ORDER_SERVICE_PORT)
-          .withHttpApp(httpApp)
-          .build
-      yield server
+      httpApp = (silentRoutes <+> loggedBusinessRoutes).orNotFound
 
-      IO.println(s"📦 Order Service starting on $ORDER_SERVICE_PORT...") *>
-        IO.println(s"🔄 Dispatcher started inside background resource...") *>
-        appResource.use(_ => IO.never)
-    }.as(ExitCode.Success)
+      server <- EmberServerBuilder
+        .default[IO]
+        .withHost(host"0.0.0.0")
+        .withPort(ORDER_SERVICE_PORT)
+        .withHttpApp(httpApp)
+        .build
+    yield server
+
+    IO.println(s"📦 Order Service starting on $ORDER_SERVICE_PORT...") *>
+      appResource.use(_ => IO.never).as(ExitCode.Success)
