@@ -51,7 +51,15 @@ object FileEventStore:
       .through(fs2.text.utf8.decode)
       .through(fs2.text.lines)
       .filter(_.nonEmpty)
-      .map(decode[DroneTelemetry](_).toOption)
+      .map{
+        line =>
+          val endOfJsonIndex = line.lastIndexOf('}')
+          if (endOfJsonIndex != -1) then
+            val cleanJson = line.substring(0, endOfJsonIndex + 1)
+            decode[DroneTelemetry](cleanJson).toOption
+          else
+            None
+      }
       .collect { case Some(t) => t }
       .compile
       .toList
