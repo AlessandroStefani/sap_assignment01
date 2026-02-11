@@ -29,7 +29,7 @@ object OrderServiceMain extends IOApp:
           input.weight,
           input.departureDate
         ).flatMap { orderId =>
-          Accepted(s"Order ${orderId.id} scheduled successfully for ${input.departureDate}")
+          Accepted(s"Order ${orderId.id} created and queued for shipment.")
         }
       }.handleErrorWith { e =>
         BadRequest(s"Invalid order request: ${e.getMessage}")
@@ -47,11 +47,9 @@ object OrderServiceMain extends IOApp:
 
       orderRepo <- FileOrderRepository.make("data/orders.json")
 
-      droneHub = new DroneHubServiceProxy(client)
-      orderService = new OrderServiceImpl(orderRepo)
-      dispatcher = new OrderDispatcher(orderRepo, droneHub)
-
-      _ <- dispatcher.start.background
+      // Use the Kafka Publisher instead of the HTTP Proxy (drone hub service is not used anymore)
+      publisher = new OrderEventPublisher()
+      orderService = new OrderServiceImpl(orderRepo, publisher)
 
       metricsSvc <- PrometheusExportService.build[IO]
       metricsOps <- Prometheus.metricsOps[IO](metricsSvc.collectorRegistry, "order_service")

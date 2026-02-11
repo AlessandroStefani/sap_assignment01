@@ -22,7 +22,7 @@ libraryDependencies ++= Seq(
   "org.http4s" %% "http4s-ember-client" % http4sVersion,
   "org.http4s" %% "http4s-dsl" % http4sVersion,
   "org.http4s" %% "http4s-circe" % http4sVersion,
-  "org.http4s" %% "http4s-prometheus-metrics" % "0.25.0",
+  "org.http4s" %% "http4s-prometheus-metrics" % "0.25.0"
 )
 
 libraryDependencies ++= Seq(

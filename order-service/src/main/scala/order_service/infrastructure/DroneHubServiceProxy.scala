@@ -10,6 +10,7 @@ import org.http4s.implicits.uri
 import org.http4s.circe.CirceEntityCodec.*
 import io.circe.generic.auto.*
 
+//not used anymore, now working with kafka
 @Adapter
 class DroneHubServiceProxy(client: Client[IO]) extends DroneHubService:
 
