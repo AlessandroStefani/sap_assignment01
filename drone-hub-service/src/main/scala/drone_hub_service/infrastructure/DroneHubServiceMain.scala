@@ -37,8 +37,6 @@ object DroneHubServiceMain extends IOApp:
 
       trackingProxy = new DroneTrackingProxy(client)
       droneHubService = new DroneHubServiceImpl(trackingProxy)
-      
-      //httpApp = Logger.httpApp(true, true)(routes(droneHubService).orNotFound)
 
       metricsSvc <- PrometheusExportService.build[IO]
       metricsOps <- Prometheus.metricsOps[IO](metricsSvc.collectorRegistry, "drone_hub_service")
@@ -46,11 +44,8 @@ object DroneHubServiceMain extends IOApp:
       businessRoutes = routes(droneHubService)
       meteredRoutes = Metrics[IO](metricsOps)(businessRoutes)
 
-      /*httpApp = Logger.httpApp(true, false)((metricsSvc.routes <+> meteredRoutes).orNotFound)*/
-
-
       silentHealthRoute = HttpRoutes.of[IO] {
-        case GET -> Root / "health" => Ok("OK") 
+        case GET -> Root / "health" => Ok("OK")
       }
       silentRoutes = metricsSvc.routes <+> silentHealthRoute
       loggedBusinessRoutes = Logger.httpRoutes(true, false)(meteredRoutes)
@@ -62,7 +57,14 @@ object DroneHubServiceMain extends IOApp:
         .withPort(DRONEHUB_PORT)
         .withHttpApp(httpApp)
         .build
-    yield server
-    
-    IO.println(s"🚁 Drone Hub Service is starting on port $DRONEHUB_PORT...") *>
-      appResource.use(_ => IO.never).as(ExitCode.Success)
+
+      // Pass the service to the consumer so it can invoke business logic on new events
+      consumerStream = OrderEventConsumer.stream(droneHubService)
+    yield (server, consumerStream)
+
+    IO.println(s"🚁 Drone Hub Service starting on port $DRONEHUB_PORT (Kafka Consumer Active)...") *>
+      appResource.use { case (_, consumerStream) =>
+        // Run the HTTP Server (implied by resource usage) AND the Kafka Consumer in parallel
+        // IO.never keeps the main thread alive for the server, while the consumer processes events.
+        (IO.never, consumerStream.compile.drain).parTupled
+      }.as(ExitCode.Success)

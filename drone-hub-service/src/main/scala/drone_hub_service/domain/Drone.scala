@@ -16,7 +16,7 @@ case class Drone(id: DroneId, tracker: DroneStateUpdater) extends Entity[DroneId
   def isAvailable: Boolean = !busy.get()
 
   def deliver(order: Order): IO[Unit] =
-    val updatedOrder = order.copy(droneId = Some(this.id))
+    //val updatedOrder = order.copy(droneId = Some(this.id))
 
     IO(busy.compareAndSet(false, true)).flatMap { available =>
       if (!available) {
@@ -31,7 +31,7 @@ case class Drone(id: DroneId, tracker: DroneStateUpdater) extends Entity[DroneId
               _ <- IO.sleep(1.second)
               mockLat = 44.0 + i.toDouble
               mockLon = 12.0 + i.toDouble
-              _ <- sendTelemetryToTrackingService(updatedOrder, mockLat, mockLon, flightDurationSeconds - i)
+              _ <- sendTelemetryToTrackingService(order, mockLat, mockLon, flightDurationSeconds - i)
             } yield ()
           }
           _ <- IO.println(s"[DRONE $id] Delivery completed at $order.destination!")
@@ -44,5 +44,5 @@ case class Drone(id: DroneId, tracker: DroneStateUpdater) extends Entity[DroneId
 
   private def sendTelemetryToTrackingService(order: Order, lat: Double, lon: Double, tta: Int): IO[Unit] = {
     IO.println(s"   >>> [TELEMETRY] Drone $id at ($lat, $lon): time until arrival $tta") *>
-      tracker.updateDrone(id, order, lat, lon, tta)
+      tracker.updateDrone(order.droneId.get, order, lat, lon, tta)
   }

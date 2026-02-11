@@ -28,6 +28,7 @@ libraryDependencies ++= Seq(
 libraryDependencies ++= Seq(
   "org.typelevel" %% "cats-core" % "2.13.0",
   "org.typelevel" %% "cats-effect" % "3.6.3",
+  "com.github.fd4s" %% "fs2-kafka" % "3.9.1"
 )
 
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.5.21"

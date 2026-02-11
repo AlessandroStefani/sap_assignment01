@@ -16,7 +16,7 @@ class DroneHubServiceImpl(trackingService: DroneStateUpdater) extends DroneHubSe
         for
           _ <- drone.deliver(order)
           _ <- IO.println(s"[DroneHub] Order assigned to drone: ${drone.getId.id}")
-        yield drone.getId
+        yield order.droneId.get
 
       case None =>
         IO.raiseError(new RuntimeException("All drones are currently busy. Please try again later."))
