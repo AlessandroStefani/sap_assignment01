@@ -47,9 +47,10 @@ object OrderServiceMain extends IOApp:
 
       orderRepo <- FileOrderRepository.make("data/orders.json")
 
-      // Use the Kafka Publisher instead of the HTTP Proxy (drone hub service is not used anymore)
       publisher = new OrderEventPublisher()
-      orderService = new OrderServiceImpl(orderRepo, publisher)
+      orderService = new OrderServiceImpl(orderRepo)
+      orderDispatcher = new OrderDispatcher(orderRepo, publisher)
+      _ <- orderDispatcher.start.background
 
       metricsSvc <- PrometheusExportService.build[IO]
       metricsOps <- Prometheus.metricsOps[IO](metricsSvc.collectorRegistry, "order_service")
