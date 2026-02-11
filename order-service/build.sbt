@@ -22,12 +22,13 @@ libraryDependencies ++= Seq(
   "org.http4s" %% "http4s-ember-client" % http4sVersion,
   "org.http4s" %% "http4s-dsl" % http4sVersion,
   "org.http4s" %% "http4s-circe" % http4sVersion,
-  "org.http4s" %% "http4s-prometheus-metrics" % "0.25.0"
+  "org.http4s" %% "http4s-prometheus-metrics" % "0.25.0",
 )
 
 libraryDependencies ++= Seq(
   "org.typelevel" %% "cats-core" % "2.13.0",
   "org.typelevel" %% "cats-effect" % "3.6.3",
+  "com.github.fd4s" %% "fs2-kafka" % "3.9.1"
 )
 
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.5.21"
