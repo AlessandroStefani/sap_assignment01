@@ -15,7 +15,7 @@ libraryDependencies ++= Seq(
   "io.circe" %% "circe-parser" % circeVersion
 )
 
-val http4sVersion = "0.23.23" // o una versione più recente
+val http4sVersion = "0.23.23"
 
 libraryDependencies ++= Seq(
   "org.http4s" %% "http4s-ember-server" % http4sVersion,
@@ -30,9 +30,8 @@ libraryDependencies ++= Seq(
   "org.typelevel" %% "cats-effect" % "3.6.3",
 )
 
-libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.4.14" // O una versione più recente
+libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.4.14"
 
-// Strategia per gestire i conflitti durante la creazione del JAR
 assembly / assemblyMergeStrategy := {
   case PathList("META-INF", xs @ _*) => MergeStrategy.discard
   case "module-info.class" => MergeStrategy.discard

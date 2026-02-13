@@ -1,25 +1,21 @@
-# === STAGE 1: Build & Cache (Pesante) ===
-FROM sbtscala/scala-sbt:eclipse-temurin-jammy-17.0.10_7_1.9.8_3.3.1
+FROM sbtscala/scala-sbt:eclipse-temurin-jammy-17.0.10_7_1.9.8_3.3.1 AS builder
+
 WORKDIR /app
 
-# 1. Copiamo SOLO i file di definizione delle dipendenze
-# Questo crea un layer cachato. Se build.sbt non cambia, questo step è istantaneo.
 COPY build.sbt .
 COPY project/ project/
-
-# 2. Scarichiamo le dipendenze (Internet)
-# Anche questo viene cachato se i file sopra non cambiano.
 RUN sbt update
 
-# 3. Copiamo il resto del codice sorgente
-# Questo è l'unico layer che viene invalidato spesso.
 COPY . .
 
-# 4. Compilazione
-RUN sbt compile
+RUN sbt assembly
 
-# === STAGE 2: Runtime ===
-# Aggiungiamo l'EXPOSE per documentazione e correttezza
+FROM eclipse-temurin:17-jre-jammy
+
+WORKDIR /app
+
+COPY --from=builder /app/target/scala-3.3.7/order-service-assembly-0.1.0-SNAPSHOT.jar app.jar
+
 EXPOSE 9068
 
-CMD ["sbt", "run"]
+CMD ["java", "-jar", "app.jar"]
