@@ -1,6 +1,6 @@
 package order_service.infrastructure
 
-import cats.effect.{ExitCode, IO, IOApp}
+import cats.effect.{ExitCode, IO, IOApp, Resource}
 import cats.syntax.all.*
 import com.comcast.ip4s.*
 import org.http4s.HttpRoutes
@@ -15,6 +15,7 @@ import order_service.domain.NewOrderRequest
 import java.time.Instant
 import scala.language.postfixOps
 import org.http4s.metrics.prometheus.{Prometheus, PrometheusExportService}
+import io.prometheus.client.Counter
 
 object OrderServiceMain extends IOApp:
   private val ORDER_SERVICE_PORT = port"9068"
@@ -44,15 +45,23 @@ object OrderServiceMain extends IOApp:
   override def run(args: List[String]): IO[ExitCode] =
     val appResource = for
       client <- EmberClientBuilder.default[IO].build
-
       orderRepo <- FileOrderRepository.make("data/orders.json")
+
+      metricsSvc <- PrometheusExportService.build[IO]
+
+      dispatchCounter <- Resource.eval(IO {
+        Counter.build()
+          .name("order_dispatcher_processed_total")
+          .help("Total orders processed by the background dispatcher")
+          .labelNames("status")
+          .register(metricsSvc.collectorRegistry)
+      })
 
       publisher = new OrderEventPublisher()
       orderService = new OrderServiceImpl(orderRepo)
-      orderDispatcher = new OrderDispatcher(orderRepo, publisher)
+      orderDispatcher = new OrderDispatcher(orderRepo, publisher, dispatchCounter)
       _ <- orderDispatcher.start.background
 
-      metricsSvc <- PrometheusExportService.build[IO]
       metricsOps <- Prometheus.metricsOps[IO](metricsSvc.collectorRegistry, "order_service")
 
       businessRoutes = routes(orderService)
