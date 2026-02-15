@@ -16,6 +16,9 @@ WORKDIR /app
 
 COPY --from=builder /app/target/scala-3.3.7/account-service-assembly-0.1.0-SNAPSHOT.jar app.jar
 
+RUN mkdir -p data
+COPY --from=builder /app/src/main/resources/accounts.json data/accounts.json
+
 EXPOSE 8081
 
 CMD ["java", "-jar", "app.jar"]
