@@ -1,0 +1,368 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: drone-delivery
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zookeeper
+  namespace: drone-delivery
+spec:
+  selector:
+    matchLabels:
+      app: zookeeper
+  template:
+    metadata:
+      labels:
+        app: zookeeper
+    spec:
+      containers:
+      - name: zookeeper
+        image: bitnamilegacy/zookeeper:3.9
+        ports:
+        - containerPort: 2181
+        env:
+        - name: ALLOW_ANONYMOUS_LOGIN
+          value: "yes"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper
+  namespace: drone-delivery
+spec:
+  ports:
+  - port: 2181
+    targetPort: 2181
+  selector:
+    app: zookeeper
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka
+  namespace: drone-delivery
+spec:
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      containers:
+      - name: kafka
+        image: bitnamilegacy/kafka:3.6
+        ports:
+        - containerPort: 9092
+        env:
+        - name: KAFKA_BROKER_ID
+          value: "1"
+        - name: KAFKA_CFG_ZOOKEEPER_CONNECT
+          value: "zookeeper:2181"
+        - name: ALLOW_PLAINTEXT_LISTENER
+          value: "yes"
+        - name: KAFKA_CFG_LISTENERS
+          value: "PLAINTEXT://:9092"
+        - name: KAFKA_CFG_ADVERTISED_LISTENERS
+          value: "PLAINTEXT://kafka:9092"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  namespace: drone-delivery
+spec:
+  ports:
+  - port: 9092
+    targetPort: 9092
+  selector:
+    app: kafka
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: account-service
+  namespace: drone-delivery
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: account-service
+  template:
+    metadata:
+      labels:
+        app: account-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+    spec:
+      containers:
+      - name: account-service
+        image: drone-account-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8081
+        env:
+        - name: JAVA_OPTS
+          value: "-Dcats.effect.cpu.starvation.check.threshold=2s"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: account-service
+  namespace: drone-delivery
+spec:
+  ports:
+  - port: 8081
+    targetPort: 8081
+  selector:
+    app: account-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tracking-service
+  namespace: drone-delivery
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tracking-service
+  template:
+    metadata:
+      labels:
+        app: tracking-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8083"
+    spec:
+      containers:
+      - name: tracking-service
+        image: drone-tracking-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8083
+        env:
+        - name: JAVA_OPTS
+          value: "-Dcats.effect.cpu.starvation.check.threshold=2s"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tracking-service
+  namespace: drone-delivery
+spec:
+  ports:
+  - port: 8083
+    targetPort: 8083
+  selector:
+    app: tracking-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: drone-hub-service
+  namespace: drone-delivery
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: drone-hub-service
+  template:
+    metadata:
+      labels:
+        app: drone-hub-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9067"
+    spec:
+      containers:
+      - name: drone-hub-service
+        image: drone-hub-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9067
+        env:
+        - name: JAVA_OPTS
+          value: "-Dcats.effect.cpu.starvation.check.threshold=2s"
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: "kafka:9092"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: drone-hub-service
+  namespace: drone-delivery
+spec:
+  ports:
+  - port: 9067
+    targetPort: 9067
+  selector:
+    app: drone-hub-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+  namespace: drone-delivery
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: order-service
+  template:
+    metadata:
+      labels:
+        app: order-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9068"
+    spec:
+      containers:
+      - name: order-service
+        image: drone-order-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9068
+        env:
+        - name: JAVA_OPTS
+          value: "-Dcats.effect.cpu.starvation.check.threshold=2s"
+        volumeMounts:
+        - name: data-volume
+          mountPath: /app/data
+      volumes:
+      - name: data-volume
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+  namespace: drone-delivery
+spec:
+  clusterIP: None
+  selector:
+    app: order-service
+  ports:
+  - port: 9068
+    targetPort: 9068
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: drone-delivery
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: api-gateway
+        image: drone-api-gateway:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        - name: JAVA_OPTS
+          value: "-Dcats.effect.cpu.starvation.check.threshold=2s"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: drone-delivery
+spec:
+  type: LoadBalancer
+  selector:
+    app: api-gateway
+  ports:
+  - port: 8080
+    targetPort: 8080
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: drone-delivery
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 5s
+    scrape_configs:
+      - job_name: 'api_gateway'
+        static_configs:
+          - targets: ['api-gateway:8080']
+      - job_name: 'account_service'
+        static_configs:
+          - targets: ['account-service:8081']
+      - job_name: 'order_service'
+        static_configs:
+          - targets: ['order-service:9068']
+      - job_name: 'drone_hub_service'
+        static_configs:
+          - targets: ['drone-hub-service:9067']
+      - job_name: 'tracking_service'
+        static_configs:
+          - targets: ['tracking-service:8083']
+---
+# --- PROMETHEUS DEPLOYMENT ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: drone-delivery
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+      - name: prometheus
+        image: prom/prometheus:latest
+        ports:
+        - containerPort: 9090
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/prometheus/prometheus.yml
+          subPath: prometheus.yml
+      volumes:
+      - name: config-volume
+        configMap:
+          name: prometheus-config
+---
+# --- PROMETHEUS SERVICE ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: drone-delivery
+spec:
+  ports:
+  - port: 9090
+    targetPort: 9090
+  selector:
+    app: prometheus
