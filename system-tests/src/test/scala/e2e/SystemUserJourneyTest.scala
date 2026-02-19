@@ -66,7 +66,7 @@ class SystemUserJourneyTest extends AnyFlatSpec with Matchers:
           "origin": "Magazzino A",
           "destination": "Cliente B",
           "weight": 5.5,
-          "departureDate": ${Instant.now().plusSeconds(3600).toString}
+          "departureDate": ${Instant.now().plusSeconds(5).toString}
         }"""
 
       val createOrderReq = Request[IO](Method.POST, apiRoot / "orders")

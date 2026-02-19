@@ -36,7 +36,7 @@ object DroneHubServiceMain extends IOApp:
       client <- EmberClientBuilder.default[IO].build
 
       trackingProxy = new DroneTrackingProxy(client)
-      droneHubService = new DroneHubServiceImpl(trackingProxy)
+      droneHubService <- Resource.eval(DroneHubServiceImpl.create(trackingProxy, 8))
 
       metricsSvc <- PrometheusExportService.build[IO]
       metricsOps <- Prometheus.metricsOps[IO](metricsSvc.collectorRegistry, "drone_hub_service")
