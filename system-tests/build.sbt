@@ -12,7 +12,8 @@ libraryDependencies ++= Seq(
 
   // QUESTA È LA LIBRERIA MANCANTE PER USARE json"""..."""
   "io.circe"      %% "circe-literal" % circeVersion % Test,
-
+  "io.cucumber" % "cucumber-java" % "6.1.1" % Test,
+  "io.cucumber" %% "cucumber-scala" % "8.39.0" % Test,
   "io.circe"      %% "circe-generic" % circeVersion % Test,
   "org.slf4j"     % "slf4j-simple" % "2.0.9" % Test
 )
