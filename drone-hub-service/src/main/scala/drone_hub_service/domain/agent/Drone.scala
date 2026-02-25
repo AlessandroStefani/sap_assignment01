@@ -1,7 +1,7 @@
 package drone_hub_service.domain.agent
 
 import cats.effect.std.Queue
-import cats.effect.{Deferred, IO}
+import cats.effect.{Deferred, IO, Ref}
 import common.ddd.Entity
 import drone_hub_service.application.DroneStateUpdater
 import drone_hub_service.domain.*
@@ -18,7 +18,8 @@ import scala.util.Random
 class Drone private (
                       id: DroneId,
                       tracker: DroneStateUpdater,
-                      inbox: Queue[IO, (Order, Deferred[IO, Boolean])]
+                      inbox: Queue[IO, (Order, Deferred[IO, Boolean])],
+                      currentStateRef: Ref[IO, DroneState]
                     ) extends Entity[DroneId]:
 
   override def getId: DroneId = id
@@ -26,11 +27,15 @@ class Drone private (
   /** L'Hub invia una proposta di consegna all'agente.
    * L'agente valuterà la proposta nel suo ciclo principale e risponderà asincronamente. */
   def proposeDelivery(order: Order): IO[Boolean] =
-    for
-      replyDeferred <- Deferred[IO, Boolean]
-      _             <- inbox.offer((order, replyDeferred))
-      result        <- replyDeferred.get
-    yield result
+    currentStateRef.get.flatMap:
+      case DroneState.InBase_Standby =>
+        for
+          replyDeferred <- Deferred[IO, Boolean]
+          _             <- inbox.offer((order, replyDeferred))
+          result        <- replyDeferred.get
+        yield result
+      case _ =>
+        IO.pure(false)
 
   /** Il loop principale dell'agente, infinito e ricorsivo di percezione-decisione-azione. */
   def agentLoop(mem: AgentMemory): IO[Unit] =
@@ -72,6 +77,8 @@ class Drone private (
         case _ => RechargeBattery
 
       nextMem <- applyRule(rule, mem)
+
+      _ <- currentStateRef.set(nextMem.state)
 
       _ <- agentLoop(nextMem)
     yield ()
@@ -132,7 +139,8 @@ object Drone:
   def create(id: DroneId, tracker: DroneStateUpdater): IO[Drone] =
     for
       inbox <- Queue.unbounded[IO, (Order, Deferred[IO, Boolean])]
-      drone = new Drone(id, tracker, inbox)
+      stateRef <- Ref.of[IO, DroneState](DroneState.InBase_Standby)
+      drone = new Drone(id, tracker, inbox, stateRef)
 
       initialMemory = AgentMemory(
         state = DroneState.InBase_Standby,
