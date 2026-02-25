@@ -70,7 +70,7 @@ class Drone private (
 
         case (DroneState.InVolo, FlightPhaseComplete) =>
           mem.flightPhase match
-            case "ToOrigin" => NextFlightPhase("Flying", mem.flightDurationSecs)
+            case "ToOrigin" => NextFlightPhase("Flying", mem.totalFlightDuration - 5)
             case "Flying"   => NextFlightPhase("ToBase", 5)
             case "ToBase"   => EndFlight
 
@@ -104,7 +104,7 @@ class Drone private (
               currentOrder = Some(order),
               flightPhase = "ToOrigin",
               ticksInPhase = 5,
-              flightDurationSecs = flightSecs,
+              totalFlightDuration = totalTicks,
               lat = 44.0,
               lon = 12.0
             ))
@@ -120,8 +120,8 @@ class Drone private (
       val newLon = mem.lon + 0.1
       for
         _ <- IO.println(s"🛸 [DRONE ${id.id}] [${mem.flightPhase}] Vento: ${mode.replace("Power","")} -> Rotori al $powerLevel% | Batt: ${newBatt.toInt}%")
-        _ <- tracker.updateDrone(id, mem.currentOrder.get, newLat, newLon, mem.ticksInPhase)
-      yield mem.copy(battery = newBatt, rotorPower = powerLevel, lat = newLat, lon = newLon, ticksInPhase = mem.ticksInPhase - 1)
+        _ <- tracker.updateDrone(id, mem.currentOrder.get, newLat, newLon, mem.totalFlightDuration - 1)
+      yield mem.copy(battery = newBatt, rotorPower = powerLevel, lat = newLat, lon = newLon, ticksInPhase = mem.ticksInPhase - 1, totalFlightDuration = mem.totalFlightDuration - 1)
 
     case NextFlightPhase(nextPhase, ticks) =>
       val msg = if nextPhase == "Flying" then "Arrivato all'origine. Prelevo pacco e vado a destinazione..."
@@ -149,7 +149,7 @@ object Drone:
         currentOrder = None,
         flightPhase = "",
         ticksInPhase = 0,
-        flightDurationSecs = 0,
+        totalFlightDuration = 0,
         lat = 44.0,
         lon = 12.0
       )

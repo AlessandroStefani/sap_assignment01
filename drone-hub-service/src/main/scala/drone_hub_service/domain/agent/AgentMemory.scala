@@ -11,7 +11,7 @@ case class AgentMemory(
                         currentOrder: Option[Order],
                         flightPhase: String,
                         ticksInPhase: Int,
-                        flightDurationSecs: Int,
+                        totalFlightDuration: Int,
                         lat: Double,
                         lon: Double
                       )
