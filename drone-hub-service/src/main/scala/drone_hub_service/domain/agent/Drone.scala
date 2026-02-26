@@ -70,7 +70,7 @@ class Drone private (
 
         case (DroneState.InVolo, FlightPhaseComplete) =>
           mem.flightPhase match
-            case "ToOrigin" => NextFlightPhase("Flying", mem.totalFlightDuration - 5)
+            case "ToOrigin" => NextFlightPhase("Flying", mem.totalFlightDuration - 10)
             case "Flying"   => NextFlightPhase("ToBase", 5)
             case "ToBase"   => EndFlight
 
@@ -116,11 +116,14 @@ class Drone private (
 
     case AdjustRotorsAndFly(mode, powerLevel, drain) =>
       val newBatt = mem.battery - drain
-      val newLat = mem.lat + 0.1
-      val newLon = mem.lon + 0.1
+      val newLat = mem.lat + 0.5
+      val newLon = mem.lon + 0.5
       for
         _ <- IO.println(s"🛸 [DRONE ${id.id}] [${mem.flightPhase}] Vento: ${mode.replace("Power","")} -> Rotori al $powerLevel% | Batt: ${newBatt.toInt}%")
-        _ <- tracker.updateDrone(id, mem.currentOrder.get, newLat, newLon, mem.totalFlightDuration - 1)
+        _ <- mem.flightPhase match
+          case "Flying" => tracker.updateDrone(id, mem.currentOrder.get, newLat, newLon, mem.ticksInPhase - 1)
+          case "ToOrigin" => tracker.updateDrone(id, mem.currentOrder.get, newLat, newLon, mem.totalFlightDuration - 10 - 1)
+          case "ToBase" => IO.unit
       yield mem.copy(battery = newBatt, rotorPower = powerLevel, lat = newLat, lon = newLon, ticksInPhase = mem.ticksInPhase - 1, totalFlightDuration = mem.totalFlightDuration - 1)
 
     case NextFlightPhase(nextPhase, ticks) =>
