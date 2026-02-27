@@ -48,9 +48,6 @@ class Drone private (
             case Some((order, replyTo)) => OrderReceived(order, replyTo)
             case None                   => BaseIdle
 
-        case DroneState.InBase_ValutazioneOrdine =>
-          IO.pure(BaseIdle)
-
         case DroneState.InVolo =>
           if mem.ticksInPhase <= 0 then IO.pure(FlightPhaseComplete)
           else
