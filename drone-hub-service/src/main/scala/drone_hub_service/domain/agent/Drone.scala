@@ -14,7 +14,7 @@ import scala.util.Random
 
 /** L'Agente Drone Intelligente.
  * Implementa un'architettura reattiva pura con ciclo Percept -> Rule Match -> Apply.
- * Comunica in modalità message-passing tramite coda asincrona (Contract Net protocol). */
+ * Comunica in modalità message-passing. */
 class Drone private (
                       id: DroneId,
                       tracker: DroneStateUpdater,
