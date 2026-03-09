@@ -81,7 +81,7 @@ object OrderServiceMain extends IOApp:
         .withHttpApp(httpApp)
         .build
 
-      consumerStream = DroneAssignedConsumer.stream(orderRepo)
+      consumerStream = DroneIdConsumer.stream(orderRepo)
 
     yield (server, consumerStream)
 

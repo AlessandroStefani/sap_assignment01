@@ -4,11 +4,9 @@ import cats.effect.IO
 import fs2.kafka.*
 import io.circe.syntax.*
 import io.circe.generic.auto.*
+import drone_hub_service.domain.DroneAssignedEvent
 
-// evento che invieremo indietro all'order service
-case class DroneAssignedEvent(orderId: String, droneId: String, userId: String)
-
-object DroneAssignedPublisher:
+object DroneIdPublisher:
 
   private val producerSettings = ProducerSettings[IO, String, String]
     .withBootstrapServers("kafka:9092")

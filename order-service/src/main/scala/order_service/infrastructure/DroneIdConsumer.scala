@@ -6,10 +6,9 @@ import order_service.application.OrderRepository
 import order_service.domain.DroneId
 import io.circe.parser.decode
 import io.circe.generic.auto.*
+import order_service.domain.DroneAssignedEvent
 
-case class DroneAssignedEvent(orderId: String, droneId: String, userId: String)
-
-object DroneAssignedConsumer:
+object DroneIdConsumer:
 
   def stream(orderRepo: OrderRepository): fs2.Stream[IO, Unit] =
     val consumerSettings = ConsumerSettings[IO, String, String]
@@ -31,7 +30,7 @@ object DroneAssignedConsumer:
 
           _ <- orderOpt match
             case Some(order) =>
-              // Aggiorniamo l'ordine con il vero Drone ID ricevuto
+              // Aggiorniamo l'ordine con il drone id ricevuto
               val updatedOrder = order.copy(droneId = Some(DroneId(event.droneId)))
               orderRepo.updateOrder(event.userId, updatedOrder) *>
                 IO.println(s"[KafkaConsumer] Ordine ${event.orderId} aggiornato con successo nel database.")

@@ -24,7 +24,7 @@ object OrderEventConsumer:
           droneId <- droneHubService.shipOrder(request.order)
           _       <- IO.println(s"[KafkaConsumer] Ordine ${request.order.id} processato. Drone assegnato: $droneId")
 
-          _       <- DroneAssignedPublisher.publish(request.order.id.id, droneId.id, request.order.usrId)
+          _       <- DroneIdPublisher.publish(request.order.id.id, droneId.id, request.order.usrId)
           _       <- IO.println(s"[KafkaConsumer] Notifica assegnamento inviata su Kafka.")
         yield ()
 
