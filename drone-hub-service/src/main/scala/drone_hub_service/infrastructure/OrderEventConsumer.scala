@@ -21,8 +21,11 @@ object OrderEventConsumer:
       .evalMap { committable =>
         val process = for
           request <- IO.fromEither(decode[DroneOrderRequest](committable.record.value))
-          _       <- droneHubService.shipOrder(request.order)
-          _       <- IO.println(s"[KafkaConsumer] Processed order ${request.order.id}")
+          droneId <- droneHubService.shipOrder(request.order)
+          _       <- IO.println(s"[KafkaConsumer] Ordine ${request.order.id} processato. Drone assegnato: $droneId")
+
+          _       <- DroneAssignedPublisher.publish(request.order.id.id, droneId.id, request.order.usrId)
+          _       <- IO.println(s"[KafkaConsumer] Notifica assegnamento inviata su Kafka.")
         yield ()
 
         process.handleErrorWith(e => IO.println(s"Error processing order: ${e.getMessage}"))

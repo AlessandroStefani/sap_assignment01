@@ -4,7 +4,6 @@ import cats.effect.IO
 import cats.syntax.all.*
 import scala.concurrent.duration.*
 import order_service.domain.{DroneId, Order}
-import java.util.UUID
 import io.prometheus.client.Counter
 
 class OrderDispatcher(repo: OrderRepository, droneHub: DroneHubService, metricCounter: Counter):
@@ -20,15 +19,16 @@ class OrderDispatcher(repo: OrderRepository, droneHub: DroneHubService, metricCo
     yield ()
 
   private def processOrder(order: Order): IO[Unit] =
-    val assignedDroneId = DroneId(s"drone-${UUID.randomUUID().toString.take(8)}")
-    val orderWithDrone = order.copy(droneId = Some(assignedDroneId))
+    val waitingOrder = order.copy(droneId = Some(DroneId("WAITING_FOR_HUB")))
 
     (for
-      _ <- IO.println(s"[Dispatcher] Processing order ${order.id}...")
-      _ <- droneHub.shipOrder(orderWithDrone)
-      _ <- repo.updateOrder(order.usrId, orderWithDrone)
-      _ <- IO.println(s"[Dispatcher] Order ${order.id} shipped via ${assignedDroneId.id}")
-      // success metric
+      _ <- IO.println(s"[Dispatcher] Elaborazione ordine ${order.id} in corso...")
+
+      _ <- droneHub.shipOrder(order)
+
+      _ <- repo.updateOrder(order.usrId, waitingOrder)
+
+      _ <- IO.println(s"[Dispatcher] Ordine ${order.id} inviato al Drone Hub. In attesa del drone...")
       _ <- IO(metricCounter.labels("success").inc())
     yield ()).handleErrorWith { e =>
       // failure metric

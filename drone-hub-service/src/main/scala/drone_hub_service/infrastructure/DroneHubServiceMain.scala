@@ -58,13 +58,11 @@ object DroneHubServiceMain extends IOApp:
         .withHttpApp(httpApp)
         .build
 
-      // Pass the service to the consumer so it can invoke business logic on new events
-      consumerStream = OrderEventConsumer.stream(droneHubService)
-    yield (server, consumerStream)
+      kafkaConsumer = OrderEventConsumer.stream(droneHubService)
 
-    IO.println(s"🚁 Drone Hub Service starting on port $DRONEHUB_PORT (Kafka Consumer Active)...") *>
-      appResource.use { case (_, consumerStream) =>
-        // Run the HTTP Server (implied by resource usage) AND the Kafka Consumer in parallel
-        // IO.never keeps the main thread alive for the server, while the consumer processes events.
-        (IO.never, consumerStream.compile.drain).parTupled
+    yield (server, kafkaConsumer)
+
+    IO.println(s"🚁 Drone Hub Service is starting on port $DRONEHUB_PORT (Kafka Consumer Active)...") *>
+      appResource.use { case (_, kafkaConsumer) =>
+        (IO.never, kafkaConsumer.compile.drain).parTupled
       }.as(ExitCode.Success)

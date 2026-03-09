@@ -16,6 +16,7 @@ import java.time.Instant
 import scala.language.postfixOps
 import org.http4s.metrics.prometheus.{Prometheus, PrometheusExportService}
 import io.prometheus.client.Counter
+import cats.syntax.all.*
 
 object OrderServiceMain extends IOApp:
   private val ORDER_SERVICE_PORT = port"9068"
@@ -79,7 +80,12 @@ object OrderServiceMain extends IOApp:
         .withPort(ORDER_SERVICE_PORT)
         .withHttpApp(httpApp)
         .build
-    yield server
 
-    IO.println(s"📦 Order Service starting on $ORDER_SERVICE_PORT...") *>
-      appResource.use(_ => IO.never).as(ExitCode.Success)
+      consumerStream = DroneAssignedConsumer.stream(orderRepo)
+
+    yield (server, consumerStream)
+
+    IO.println(s"📦 Order Service starting on $ORDER_SERVICE_PORT (Kafka Consumer Active)...") *>
+      appResource.use { case (_, consumerStream) =>
+        (IO.never, consumerStream.compile.drain).parTupled
+      }.as(ExitCode.Success)
